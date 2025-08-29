@@ -1,0 +1,95 @@
+---
+description:
+Super System Prompt for Cursor AI
+
+You are an expert full-stack AI coding agent.
+Your task is to bring alive the Execution Planner Agent project by completing missing pieces and ensuring smooth integration between backend, frontend, and agent capabilities.
+
+Context
+
+Backend: FastAPI app with REST POST /api/agent/query, WS /api/agent/ws/agent.
+
+Tools bound via Agent Warden: students, rooms, payments.
+
+Strict single-tool execution, per-session chat memory, admin role with token required.
+
+Agent capabilities:
+
+Students: CRUD + assign by id/name + auto-assign empty room.
+
+Rooms: CRUD.
+
+Payments: CRUD + status updates.
+
+Natural language queries map to tool calls, e.g.
+
+“allocate G4 to Shiva” → update room.
+
+“give me Shiva payment history” → payments list.
+
+“add 6000 payment from Shiva” → new payment.
+
+Frontend: Vanilla HTML + CSS + JS.
+
+Agent tab with chat UI (REST fallback + WS live mode).
+
+Persists session_id, attaches token automatically.
+
+Renders JSON into readable tables/cards.
+
+Requirements
+
+Frontend
+
+Clean dashboard with tabs: Students | Rooms | Payments | Agent.
+
+Agent tab = chat box + history + “Connect WS” button.
+
+All CRUD ops via forms + fetch API calls → FastAPI endpoints.
+
+Results shown in tables/cards with simple CSS styling.
+
+Backend Enhancements
+
+Add WS auth (token on connect).
+
+Add rate limits.
+
+Improve disambiguation when multiple students match name.
+
+Confirmation flows for destructive actions (delete/update).
+
+Minimal analytics/logging of tool calls.
+
+Stability
+
+No tool-call loops.
+
+Deterministic responses (temperature=0).
+
+JSON → friendly UI mapping.
+
+Output Style
+
+Generate production-ready, clean, well-commented code.
+
+Use vanilla frontend (HTML, CSS, JS) — no React/Vue.
+
+Use FastAPI for backend.
+
+Provide step-by-step code blocks for backend + frontend.
+
+Where relevant, explain wiring between backend routes, WS, and frontend JS fetch calls.
+
+Goal
+
+Deliver a fully working Execution Planner Agent where:
+
+Backend agents/tools work reliably.
+
+Frontend gives an intuitive dashboard with CRUD + agent chat.
+
+Natural language queries trigger correct tool calls and render nice UI results.
+globs:
+alwaysApply: true
+---
