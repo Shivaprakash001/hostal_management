@@ -4,6 +4,7 @@ export function initTabs(loadCallbacks = {}) {
     rooms: document.getElementById("panel-rooms"),
     students: document.getElementById("panel-students"),
     payments: document.getElementById("panel-payments"),
+    mess: document.getElementById("panel-mess"),
     agent: document.getElementById("panel-agent"),
   };
 

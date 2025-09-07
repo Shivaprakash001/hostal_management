@@ -1,0 +1,460 @@
+/* ----------- MESS PANEL STYLES ----------- */
+
+/* Comments Section */
+.comments-section {
+  margin-top: 15px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.comments-header {
+  margin-bottom: 10px;
+}
+
+.comments-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.comments-toggle:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.toggle-icon {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.comments-list {
+  margin-bottom: 15px;
+}
+
+.comment-item {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.comment-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.comment-author {
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 0.9rem;
+}
+
+.comment-date {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.delete-comment-btn {
+  background: var(--danger) !important;
+  color: white !important;
+  border: none !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+
+.delete-comment-btn:hover {
+  background: var(--danger-light) !important;
+  transform: scale(1.1) !important;
+}
+
+.comment-rating {
+  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.comment-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: rgba(74, 144, 226, 0.05);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}
+
+.no-comments {
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  padding: 20px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* Add Comment Form */
+.add-comment-form {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* Rating Section */
+.rating-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(74, 144, 226, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(74, 144, 226, 0.1);
+}
+
+.rating-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.rating-stars-input {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.star-input {
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.4;
+  user-select: none;
+}
+
+.star-input:hover {
+  transform: scale(1.2);
+  opacity: 0.8;
+}
+
+.star-input.selected {
+  opacity: 1;
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+  transform: scale(1.1);
+}
+
+.new-comment-text {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+  transition: all 0.3s ease;
+  margin-bottom: 10px;
+}
+
+.new-comment-text:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  background: var(--card-bg);
+}
+
+.comment-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Comment restriction notice for non-students */
+.comment-restriction-notice {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(74, 144, 226, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(74, 144, 226, 0.1);
+}
+
+.comment-restriction-notice p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.comment-form-actions .btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  min-width: 100px;
+}
+
+/* ----------- MESS STATISTICS ----------- */
+.mess-stats {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mess-stats h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--text);
+  font-size: 18px;
+}
+
+/* ----------- TODAY'S MENU DISPLAY ----------- */
+.today-menu {
+  margin-bottom: 20px;
+}
+
+.today-menu h3 {
+  margin: 0 0 15px 0;
+  color: var(--primary);
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+
+/* ----------- MENU HISTORY ----------- */
+.menu-history {
+  margin-bottom: 20px;
+}
+
+.menu-history h3 {
+  margin: 0 0 15px 0;
+  color: var(--primary);
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+
+/* ----------- FEEDBACK HISTORY ----------- */
+.feedback-history {
+  margin-bottom: 20px;
+}
+
+.feedback-history h3 {
+  margin: 0 0 15px 0;
+  color: var(--primary);
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+
+/* ----------- QUICK FEEDBACK ----------- */
+.quick-feedback {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.feedback-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.star {
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.star:hover {
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.star:active {
+  transform: scale(1.1);
+}
+
+.star.selected {
+  opacity: 1;
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+/* ----------- COMMENT SECTION ----------- */
+.comment-section {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.comment-section.hidden {
+  display: none;
+}
+
+.feedback-comment {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+  transition: all 0.3s ease;
+  margin-bottom: 10px;
+}
+
+.feedback-comment:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  background: var(--card-bg);
+}
+
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.comment-actions .btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  min-width: 80px;
+}
+
+/* ----------- USER FEEDBACK DISPLAY ----------- */
+.user-feedback {
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--bg) 0%, rgba(74, 144, 226, 0.05) 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.user-rating {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.user-comment {
+  display: block;
+  margin-top: 6px;
+  font-style: italic;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ----------- FEEDBACK LIST ----------- */
+.feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedback-item {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.feedback-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.student-name {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.rating {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.date {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.comment {
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+  color: var(--text);
+  font-style: italic;
+}

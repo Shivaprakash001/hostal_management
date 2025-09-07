@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: hostel-management-api
+    runtime: python3
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Set this manually in Render dashboard
+      - key: CORS_ORIGINS
+        sync: false  # Set this to your Netlify domain
+      - key: GROQ_API_KEY
+        sync: false  # Set this in Render dashboard
+      - key: LANGSMITH_API_KEY
+        sync: false  # Set this in Render dashboard
+      - key: LANGSMITH_PROJECT
+        fromSecret: LANGSMITH_PROJECT
+      - key: LANGSMITH_ENDPOINT
+        fromSecret: LANGSMITH_ENDPOINT
+      - key: LANGSMITH_TRACING
+        fromSecret: LANGSMITH_TRACING

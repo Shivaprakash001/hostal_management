@@ -3,7 +3,8 @@ from services.room_services import create_room, delete_room
 from database.db import Session
 from schemas.room import RoomCreate, DeleteRoom, RoomWithStudents, RoomOut, UpdateRoom
 from schemas.payments import PaymentStatus
-from models.models import Room
+from models.models import Room, User, UserRole
+from utils.auth import get_current_user, require_role
 from typing import List
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
@@ -16,17 +17,20 @@ def get_db():
 
 # Create room
 @router.post("/", response_model=RoomOut)
-def add_room(room: RoomCreate, db: Session = Depends(get_db)):
+def add_room(room: RoomCreate, current_user: User = Depends(require_role([UserRole.admin])), db: Session = Depends(get_db)):
     return create_room(room.room_no, room.price, db, capacity=room.capacity)
 
 # Delete room
 @router.delete("/", response_model=dict)
-def remove_room(room: DeleteRoom, db: Session = Depends(get_db)):
+def remove_room(room: DeleteRoom, current_user: User = Depends(require_role([UserRole.admin])), db: Session = Depends(get_db)):
     return delete_room(room.room_no, db)
 
 # Get all rooms (with students)
 @router.get("/", response_model=List[RoomWithStudents])
-def get_rooms(db: Session = Depends(get_db)):
+def get_rooms(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Only admins can see all rooms
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Forbidden")
     rooms = db.query(Room).all()
     for room in rooms:
         total_paid = sum(payment.amount for payment in room.payments if payment.status == PaymentStatus.paid)

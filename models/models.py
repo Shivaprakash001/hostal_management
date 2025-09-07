@@ -1,10 +1,10 @@
 # models/models.py
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, Text
 from sqlalchemy.orm import relationship
 from database.db import Base
 import enum
 from datetime import datetime
-from schemas.payments import PaymentStatus
+from schemas.payments import PaymentStatus, PaymentMethod
 from sqlalchemy import Boolean
 from passlib.hash import bcrypt
 
@@ -44,6 +44,11 @@ class Payment(Base):
     date = Column(DateTime, default=datetime.utcnow, nullable=False)
     amount = Column(Float, nullable=False)
     status = Column(Enum(PaymentStatus), default=PaymentStatus.pending)
+    month = Column(Integer, nullable=False)  # 1-12 for January-December
+    year = Column(Integer, nullable=False)   # e.g., 2024
+    transaction_id = Column(String(50), unique=True, nullable=False)  # Unique transaction identifier
+    payment_method = Column(Enum(PaymentMethod), default=PaymentMethod.cash, nullable=False)
+    receipt_generated = Column(Boolean, default=False, nullable=False)
 
     # Relationships
     student = relationship("Student", back_populates="payments")
@@ -77,3 +82,38 @@ class User(Base):
 
     def set_password(self, password: str):
         self.password_hash = bcrypt.hash(password)
+
+
+class MealType(enum.Enum):
+    breakfast = "breakfast"
+    lunch = "lunch"
+    dinner = "dinner"
+    snacks = "snacks"
+
+
+class Menu(Base):
+    __tablename__ = "menu"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime, nullable=False, index=True)
+    meal_type = Column(Enum(MealType), nullable=False)
+    items = Column(Text, nullable=False)  # JSON string or comma-separated items
+
+    # Relationships
+    feedbacks = relationship("Feedback", back_populates="menu", cascade="all, delete-orphan")
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    menu_id = Column(Integer, ForeignKey("menu.id", ondelete="CASCADE"), nullable=False)
+    date = Column(DateTime, nullable=False, index=True)
+    meal_type = Column(Enum(MealType), nullable=False)
+    rating = Column(Integer, nullable=False)  # 1-5 rating
+    comment = Column(Text, nullable=True)
+
+    # Relationships
+    student = relationship("Student", backref="feedbacks")
+    menu = relationship("Menu", back_populates="feedbacks")

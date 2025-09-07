@@ -1,0 +1,342 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Pay Hostel Rent (UPI)</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/forms.css">
+    <link rel="stylesheet" href="/static/css/payment.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+  </head>
+  <body>
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle">
+      <i data-lucide="moon"></i>
+    </button>
+
+    <div class="payment-container">
+      <div class="payment-header">
+        <h1>Pay Hostel Rent (UPI)</h1>
+        <p class="payment-subtitle">Secure and easy payment for your hostel accommodation</p>
+      </div>
+
+      <!-- Student Info Display -->
+      <div id="studentInfo" class="student-info-card hidden">
+        <div class="card-header">
+          <h3>Your Payment Details</h3>
+        </div>
+        <div class="card-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Name:</span>
+              <span class="info-value" id="studentName"></span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Room:</span>
+              <span class="info-value" id="roomNo"></span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Monthly Rent:</span>
+              <span class="info-value rent-amount" id="roomRent"></span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Payment Month:</span>
+              <span class="info-value" id="paymentMonth"></span>
+              <span class="info-value" id="paymentYear"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading indicator -->
+      <div id="loading" class="loading-indicator hidden">
+        <div class="loading-spinner"></div>
+        <p>Loading your payment details...</p>
+      </div>
+
+      <!-- Error message -->
+      <div id="error" class="error-message hidden">
+        <div class="error-icon">⚠️</div>
+        <p id="errorText"></p>
+      </div>
+
+      <!-- Hidden form fields for API calls -->
+      <input type="hidden" id="student_id" />
+      <input type="hidden" id="month" />
+      <input type="hidden" id="year" />
+      <input type="hidden" id="amount" />
+
+      <!-- Payment Method Selection -->
+      <div class="payment-method-card">
+        <div class="card-header">
+          <h3>Select Payment Method</h3>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="payment_method" class="form-label">Choose your preferred UPI app:</label>
+            <select id="payment_method" class="form-select">
+              <option value="upi">UPI QR Code</option>
+              <option value="gpay">Google Pay</option>
+              <option value="phonepe">PhonePe</option>
+              <option value="paytm">Paytm</option>
+              <option value="amazonpay">Amazon Pay</option>
+              <option value="bhim">BHIM UPI</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button id="payBtn" class="btn btn-primary btn-lg" disabled>
+              <span class="btn-icon">💳</span>
+              Generate Payment
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPI Payment Area -->
+      <div id="upiArea" class="upi-payment-card hidden">
+        <div class="card-body">
+          <h3 style="text-align: center; margin-bottom: 20px; color: var(--primary);">Complete Your Payment</h3>
+
+          <!-- QR Code Section -->
+          <div class="qr-section">
+            <div class="section-title">
+              <span class="section-icon">📱</span>
+              <h4>Scan QR Code</h4>
+            </div>
+            <p class="section-description">Open your UPI app and scan this QR code to make payment</p>
+            <div id="qrContainer" class="qr-container">
+              <div id="qrCode" class="qr-code-placeholder">
+                <div class="qr-placeholder-content">
+                  <span class="qr-icon">📱</span>
+                  <p>QR Code will appear here</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alternative Payment Link -->
+          <div class="divider">
+            <span>OR</span>
+          </div>
+
+          <div class="link-section">
+            <div class="section-title">
+              <span class="section-icon">🔗</span>
+              <h4>Click to Pay</h4>
+            </div>
+            <p class="section-description">Click the button below to open your UPI app directly</p>
+            <div class="link-container">
+              <a id="upiLink" href="#" target="_blank" class="btn btn-secondary btn-lg">
+                <span class="btn-icon">🔗</span>
+                Open UPI App
+              </a>
+            </div>
+          </div>
+
+          <!-- Payment Verification -->
+          <div class="verification-section">
+            <div class="section-title">
+              <span class="section-icon">✅</span>
+              <h4>Verify Payment</h4>
+            </div>
+            <p class="section-description">After completing the payment in your UPI app, click below to verify and mark as paid</p>
+            <div class="verification-actions">
+              <button id="verifyBtn" class="btn btn-success btn-lg">
+                <span class="btn-icon">✅</span>
+                I've Completed the Payment
+              </button>
+            </div>
+          </div>
+
+          <!-- UPI Features -->
+          <div class="upi-features" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(74, 144, 226, 0.1);">
+            <div class="upi-feature">
+              <span>📱</span>
+              <span>Mobile Apps</span>
+            </div>
+            <div class="upi-feature">
+              <span>🛡️</span>
+              <span>Secure</span>
+            </div>
+            <div class="upi-feature">
+              <span>⚡</span>
+              <span>Instant</span>
+            </div>
+            <div class="upi-feature">
+              <span>✅</span>
+              <span>Reliable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      async function loadStudentPaymentInfo() {
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const studentInfo = document.getElementById('studentInfo');
+        const payBtn = document.getElementById('payBtn');
+
+        loading.classList.remove('hidden');
+        error.classList.add('hidden');
+
+        try {
+          const response = await fetch('/payments/student-payment-info', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+
+          // Populate form fields
+          document.getElementById('student_id').value = data.student_id;
+          document.getElementById('month').value = data.current_month;
+          document.getElementById('year').value = data.current_year;
+          document.getElementById('amount').value = data.room_rent;
+
+          // Display student info
+          document.getElementById('studentName').textContent = data.student_name;
+          document.getElementById('roomNo').textContent = data.room_no;
+          document.getElementById('roomRent').textContent = data.room_rent;
+          document.getElementById('paymentMonth').textContent = getMonthName(data.current_month);
+          document.getElementById('paymentYear').textContent = data.current_year;
+
+          studentInfo.classList.remove('hidden');
+          payBtn.disabled = false;
+
+        } catch (err) {
+          console.error('Error loading student payment info:', err);
+          error.textContent = `Error loading payment details: ${err.message}`;
+          error.classList.remove('hidden');
+        } finally {
+          loading.classList.add('hidden');
+        }
+      }
+
+      function getMonthName(month) {
+        const months = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ];
+        return months[month - 1] || month;
+      }
+
+      // Load student info when page loads
+      document.addEventListener('DOMContentLoaded', loadStudentPaymentInfo);
+
+      // Payment button handler
+      document.getElementById('payBtn').addEventListener('click', async () => {
+        const student_id = parseInt(document.getElementById('student_id').value);
+        const month = parseInt(document.getElementById('month').value);
+        const year = parseInt(document.getElementById('year').value);
+        const amount = parseFloat(document.getElementById('amount').value);
+
+        if (!student_id || !month || !year || !amount) {
+          alert('Payment details not loaded properly. Please refresh the page.');
+          return;
+        }
+
+        try {
+          const orderRes = await fetch('/payments/create-order', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ student_id, amount, month, year })
+          });
+
+          if (!orderRes.ok) {
+            throw new Error(`HTTP ${orderRes.status}: ${orderRes.statusText}`);
+          }
+
+          const orderData = await orderRes.json();
+
+          // Show UPI area
+          document.getElementById('upiArea').classList.remove('hidden');
+
+          // Display QR code
+          const qrContainer = document.getElementById('qrCode');
+          qrContainer.innerHTML = `<img src="data:image/png;base64,${orderData.qr_base64}" alt="UPI QR Code" style="max-width: 250px; max-height: 250px; border: 2px solid var(--border); border-radius: 12px; padding: 15px; background: white;"/>`;
+
+          // Set UPI link
+          document.getElementById('upiLink').href = orderData.upi_url;
+
+          // Store order ID for verification
+          document.getElementById('verifyBtn').setAttribute('data-order-id', orderData.order_id);
+
+        } catch (err) {
+          console.error('Error creating order:', err);
+          alert(`Error generating payment QR: ${err.message}`);
+        }
+      });
+
+      // Verify payment handler
+      document.getElementById('verifyBtn').addEventListener('click', async () => {
+        const order_id = document.getElementById('verifyBtn').getAttribute('data-order-id');
+        const student_id = parseInt(document.getElementById('student_id').value);
+        const month = parseInt(document.getElementById('month').value);
+        const year = parseInt(document.getElementById('year').value);
+        const amount = parseFloat(document.getElementById('amount').value);
+
+        if (!order_id) {
+          alert('No payment order found. Please generate payment first.');
+          return;
+        }
+
+        try {
+          const res = await fetch('/payments/verify-payment', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              razorpay_order_id: order_id,
+              razorpay_payment_id: "mock_upi_txn",
+              razorpay_signature: "mock_sig",
+              student_id: student_id,
+              month: month,
+              year: year,
+              amount: amount
+            })
+          });
+
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+
+          const result = await res.json();
+          alert('Payment verified and marked as paid successfully!');
+          location.reload(); // Refresh to show updated status
+        } catch (err) {
+          console.error('Error verifying payment:', err);
+          alert(`Error verifying payment: ${err.message}`);
+        }
+      });
+
+      // Theme toggle
+      const toggleBtn = document.getElementById("theme-toggle");
+      if (toggleBtn) {
+        toggleBtn.addEventListener("click", () => {
+          document.body.classList.toggle("dark");
+          toggleBtn.innerHTML = document.body.classList.contains("dark")
+            ? '<i data-lucide="sun"></i>'
+            : '<i data-lucide="moon"></i>';
+          if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

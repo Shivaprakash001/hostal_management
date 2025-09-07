@@ -4,11 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hostel Management Dashboard</title>
-  <link rel="stylesheet" href="/static/css/styles.css" />
+  <link rel="stylesheet" href="/static/css/base.css" />
+  <link rel="stylesheet" href="/static/css/components.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/forms.css" />
+  <link rel="stylesheet" href="/static/css/mess.css" />
+  <link rel="stylesheet" href="/static/css/agent.css" />
+  <link rel="stylesheet" href="/static/css/responsive.css" />
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 </head>
 <body>
 
@@ -19,24 +27,70 @@
 
   <!-- Login Container -->
   <div id="login-container">
-    <div class="login-form-container">
-      <h1 style="margin-top: 0;">Hostel Management System</h1>
-      <form id="login-form" class="login-form">
-        <h2>Login</h2>
-        <input type="text" id="login-username" placeholder="Username" required>
-        <input type="password" id="login-password" placeholder="Password" required>
-        <button type="submit" class="btn primary">Login</button>
-        <p id="login-error" class="error"></p> <!-- Error message element -->
-      </form>
+    <div class="login-wrapper">
+      <div class="login-card">
+        <div class="login-header">
+          <div class="logo">
+            <i data-lucide="building-2" class="logo-icon"></i>
+            <h1>Hostel Management</h1>
+          </div>
+          <p class="login-subtitle">Sign in to access your dashboard</p>
+        </div>
+        
+        <form id="login-form" class="login-form">
+          <div class="form-group">
+            <label for="login-username" class="form-label">Username</label>
+            <div class="input-group">
+              <i data-lucide="user" class="input-icon"></i>
+              <input type="text" id="login-username" placeholder="Enter your username" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="login-password" class="form-label">Password</label>
+            <div class="input-group">
+              <i data-lucide="lock" class="input-icon"></i>
+              <input type="password" id="login-password" placeholder="Enter your password" required>
+            </div>
+          </div>
+          
+          <button type="submit" class="login-btn">
+            <span>Sign In</span>
+            <i data-lucide="log-in" class="btn-icon"></i>
+          </button>
+          
+          <p id="login-error" class="error-message"></p>
+        </form>
+        
+        <div class="login-footer">
+          <p class="support-text">Need help? Contact support at <a href="mailto:support@hostel.com">support@hostel.com</a></p>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Dashboard Container -->
   <div id="dashboard" style="display: none;">
     <header>
-      <h1>Hostel Dashboard</h1>
-      <div>
-        <button id="logout-btn" class="btn danger">Logout</button>
+      <div class="header-content">
+        <h1>Hostel Dashboard</h1>
+        <div class="header-actions">
+          <!-- Admin buttons (shown only for admins) -->
+          <div id="admin-buttons" class="admin-buttons-container" style="display: none;">
+            <button id="admin-upi-btn" class="btn btn-admin" onclick="window.open('/admin/upi', '_blank')" title="Configure UPI Settings">
+              <i data-lucide="settings"></i>
+              <span class="btn-text">UPI Settings</span>
+            </button>
+            <button id="admin-payments-btn" class="btn btn-admin" onclick="window.open('/admin/payments', '_blank')" title="Verify and Manage Payments">
+              <i data-lucide="check-circle"></i>
+              <span class="btn-text">Verify Payments</span>
+            </button>
+          </div>
+          <button id="logout-btn" class="btn btn-logout" title="Sign Out">
+            <i data-lucide="log-out"></i>
+            <span class="btn-text">Logout</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -45,6 +99,7 @@
       <button class="tab-btn active" data-tab="rooms"><i data-lucide="home"></i> Rooms</button>
       <button class="tab-btn" data-tab="students"><i data-lucide="users"></i> Students</button>
       <button class="tab-btn" data-tab="payments"><i data-lucide="credit-card"></i> Payments</button>
+      <button class="tab-btn" data-tab="mess"><i data-lucide="utensils"></i> Mess</button>
       <button class="tab-btn" data-tab="agent"><i data-lucide="bot"></i> Agent</button>
     </div>
 
@@ -64,7 +119,7 @@
           <input id="filter-max-price" type="number" step="0.01" placeholder="e.g. 6000" />
         </label>
         <button type="button" id="apply-room-filters" class="btn">Apply</button>
-        <button type="button" id="clear-room-filters" class="btn">Clear</button>
+        <button type="button" id="clear-room-filters" class="btn" style="display: none;">Clear</button>
       </div>
       <form id="form-add-room">
         <input id="room_no" type="text" placeholder="Room No (e.g. 101)" required>
@@ -93,7 +148,103 @@
     <!-- PAYMENTS PANEL -->
     <section class="panel" id="panel-payments">
       <h2>Payments</h2>
-      <div class="payment-lookup">
+
+      <!-- UPI Payment Button -->
+      <div class="upi-payment-section" style="margin-bottom: 20px;">
+        <button id="upi-payment-btn" class="btn primary" onclick="window.open('/payment', '_blank')">
+          <i data-lucide="credit-card"></i> Pay via UPI QR
+        </button>
+        <p class="muted" style="margin-top: 5px;">Generate UPI QR code and deep link for hostel rent payment</p>
+      </div>
+
+      <!-- Payment Statistics Dashboard -->
+      <div class="payment-stats" id="payment-stats" style="display: none;">
+        <h3>Payment Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number" id="total-payments">0</div>
+            <div class="stat-label">Total Payments</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="paid-payments">0</div>
+            <div class="stat-label">Paid</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="pending-payments">0</div>
+            <div class="stat-label">Pending</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="total-collected">₹0</div>
+            <div class="stat-label">Total Collected</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="total-pending-amount">₹0</div>
+            <div class="stat-label">Pending Amount</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Controls -->
+      <div class="admin-controls" id="admin-controls" style="display: none;">
+        <h3>Admin Controls</h3>
+        <div class="filters">
+          <label>
+            <span class="muted">Month</span>
+            <select id="filter-month">
+              <option value="">All Months</option>
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </label>
+          <label>
+            <span class="muted">Year</span>
+            <select id="filter-year">
+              <option value="">All Years</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+            </select>
+          </label>
+          <label>
+            <span class="muted">Status</span>
+            <select id="filter-status">
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Paid">Paid</option>
+              <option value="Failed">Failed</option>
+            </select>
+          </label>
+          <button type="button" id="apply-payment-filters" class="btn">Apply Filters</button>
+          <button type="button" id="clear-payment-filters" class="btn">Clear</button>
+          <button type="button" id="export-csv" class="btn primary">Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Student Payment Portal -->
+      <div class="student-payment-portal" id="student-payment-portal" style="display: none;">
+        <h3>My Payment Portal</h3>
+        <div class="upi-payment-section" style="margin-bottom: 20px;">
+          <button id="student-upi-payment-btn" class="btn primary" onclick="window.open('/payment', '_blank')">
+            <i data-lucide="credit-card"></i> Pay via UPI QR
+          </button>
+          <p class="muted" style="margin-top: 5px;">Generate UPI QR code and deep link for hostel rent payment</p>
+        </div>
+        <div class="payment-due-info" id="payment-due-info">
+          <p>Loading your payment information...</p>
+        </div>
+      </div>
+
+      <!-- Payment Lookup (Admin) -->
+      <div class="payment-lookup" id="payment-lookup">
         <h3>Lookup Payments</h3>
         <div class="lookup-form">
           <input id="lookup_student_name" type="text" placeholder="Enter student name">
@@ -101,14 +252,133 @@
         </div>
       </div>
 
+      <!-- Add Payment Form (Admin) -->
       <form id="form-add-payment" class="add-payment-form">
-        <input id="payment_student_name" type="text" placeholder="Student Name" required>
-        <input id="payment_amount" type="number" step="0.01" placeholder="Amount" required>
+        <h3>Add New Payment</h3>
+        <div class="form-row">
+          <input id="payment_student_name" type="text" placeholder="Student Name" required>
+          <input id="payment_amount" type="number" step="0.01" placeholder="Amount" required>
+        </div>
+        <div class="form-row">
+          <select id="payment_month" required>
+            <option value="">Select Month</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          <select id="payment_year" required>
+            <option value="">Select Year</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <select id="payment_method" required>
+            <option value="Cash">Cash</option>
+            <option value="Online">Online</option>
+          </select>
+          <select id="payment_status" required>
+            <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+            <option value="Failed">Failed</option>
+          </select>
+        </div>
         <button type="submit" class="btn">Add Payment</button>
       </form>
 
       <div id="payments-loading" class="loading">Loading payments...</div>
       <ul id="payments-list" class="list"></ul>
+    </section>
+
+    <!-- MESS PANEL -->
+    <section class="panel" id="panel-mess">
+      <h2>Mess Management</h2>
+
+      <!-- Mess Statistics Dashboard -->
+      <div class="mess-stats" id="mess-stats" style="display: none;">
+        <h3>Mess Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number" id="total-menus">0</div>
+            <div class="stat-label">Total Menus</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="total-feedback">0</div>
+            <div class="stat-label">Total Feedback</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="avg-rating">0</div>
+            <div class="stat-label">Avg Rating</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="today-menus">0</div>
+            <div class="stat-label">Today's Menus</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Mess Controls -->
+      <div class="admin-mess-controls" id="admin-mess-controls" style="display: none;">
+        <h3>Menu Management</h3>
+        <form id="form-add-menu" class="add-menu-form">
+          <div class="form-row">
+            <input id="menu_date" name="menu_date" type="date" required>
+            <select id="menu_meal_type" name="menu_meal_type" required>
+              <option value="">Select Meal Type</option>
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snacks">Snacks</option>
+            </select>
+          </div>
+          <textarea id="menu_items" name="menu_items" placeholder="Menu items (comma separated)" rows="3" required></textarea>
+          <button type="submit" class="btn">Add Menu</button>
+        </form>
+      </div>
+
+      <!-- Today's Menu Display -->
+      <div class="today-menu" id="today-menu">
+        <h3>Today's Menu</h3>
+        <div id="today-menu-loading" class="loading">Loading today's menu...</div>
+        <div id="today-menu-content" class="menu-content"></div>
+      </div>
+
+      <!-- Menu History -->
+      <div class="menu-history" id="menu-history">
+        <h3>Menu History</h3>
+        <div class="filters" style="margin-bottom: 15px;">
+          <input id="menu-date-filter" type="date" placeholder="Filter by date">
+          <select id="menu-type-filter">
+            <option value="">All Meal Types</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snacks">Snacks</option>
+          </select>
+          <button id="apply-menu-filters" class="btn">Apply</button>
+        </div>
+        <div id="menu-history-loading" class="loading">Loading menu history...</div>
+        <div id="menu-history-content" class="menu-list"></div>
+      </div>
+
+
+
+      <!-- Feedback History -->
+      <div class="feedback-history" id="feedback-history">
+        <h3>Feedback History</h3>
+        <div id="feedback-history-loading" class="loading">Loading feedback...</div>
+        <div id="feedback-history-content" class="feedback-list"></div>
+      </div>
+
     </section>
 
     <!-- AGENT PANEL -->
@@ -125,20 +395,32 @@
     </section>
   </div>
 
-  <script type="module" src="/static/js/main.js?v=2"></script>
+  <script type="module" src="/static/js/main.js?v=3"></script>
   <script type="module" src="/static/js/agent.js?v=1"></script>
+  <script type="module" src="/static/js/admin_upi.js?v=1"></script>
+  <script type="module" src="/static/js/mess.js?v=1"></script>
   <script>
     lucide.createIcons();
 
     // Theme toggle
     const toggleBtn = document.getElementById("theme-toggle");
-    toggleBtn.addEventListener("click", () => {
-      document.body.classList.toggle("dark");
-      toggleBtn.innerHTML = document.body.classList.contains("dark")
-        ? '<i data-lucide="sun"></i>'
-        : '<i data-lucide="moon"></i>';
-      lucide.createIcons();
-    });
+    if (toggleBtn) {
+      console.log("Theme toggle button found");
+      toggleBtn.addEventListener("click", () => {
+        console.log("Theme toggle clicked");
+        document.body.classList.toggle("dark");
+        const isDark = document.body.classList.contains("dark");
+        console.log("Dark mode:", isDark);
+        toggleBtn.innerHTML = isDark
+          ? '<i data-lucide="sun"></i>'
+          : '<i data-lucide="moon"></i>';
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+          lucide.createIcons();
+        }
+      });
+    } else {
+      console.log("Theme toggle button not found");
+    }
   </script>
 </body>
 </html>

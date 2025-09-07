@@ -1,0 +1,662 @@
+/* ----------- STUDENT DASHBOARD ----------- */
+#student-dashboard {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.student-info,
+.payment-summary,
+.payment-history {
+  margin-bottom: 40px;
+  padding: 20px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.student-info .info-row {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.student-info .info-row strong {
+  width: 100px;
+  display: inline-block;
+}
+
+.payment-summary .stats-grid {
+  gap: 30px;
+}
+
+.payment-summary .stat-card {
+  padding: 25px;
+  font-size: 16px;
+}
+
+.payment-summary .stat-number {
+  font-size: 32px;
+}
+
+.payment-history table.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+
+.payment-history table.data-table thead tr th {
+  background: var(--card-bg);
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid var(--border);
+}
+
+.payment-history table.data-table tbody tr {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: background 0.3s ease;
+}
+
+.payment-history table.data-table tbody tr:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.payment-history table.data-table tbody tr td {
+  padding: 12px 15px;
+  vertical-align: middle;
+}
+
+.payment-history table.data-table tbody tr td .badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.payment-history table.data-table tbody tr td .badge.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.payment-history table.data-table tbody tr td .badge.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.payment-history table.data-table tbody tr td .badge.danger {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.payment-history table.data-table tbody tr td button.btn {
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.payment-history table.data-table tbody tr td button.btn:hover {
+  background: var(--accent-hover);
+}
+
+/* ----------- STUDENT INFO CARD ----------- */
+.student-info-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 30px;
+  overflow: hidden;
+  border-left: 4px solid var(--accent);
+}
+
+.card-header {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: white;
+  padding: 20px 25px;
+  margin: 0;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.card-body {
+  padding: 25px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.info-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.rent-amount {
+  font-size: 1.3rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.rent-amount::before {
+  content: "₹";
+  font-weight: 600;
+}
+
+/* ----------- LOADING INDICATOR ----------- */
+.loading-indicator {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 30px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-indicator p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+/* ----------- ERROR MESSAGE ----------- */
+.error-message {
+  text-align: center;
+  padding: 20px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: var(--radius);
+  margin-bottom: 30px;
+  color: #c33;
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.error-message p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ----------- UPI PAYMENT SECTION ----------- */
+.upi-payment-section {
+  margin-bottom: 40px;
+}
+
+.upi-payment-section h2 {
+  margin-bottom: 20px;
+  color: var(--primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* UPI Payment Card */
+.upi-payment-card {
+  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(255,255,255,0.98) 50%, rgba(74,144,226,0.02) 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(74,144,226,0.1);
+  margin-bottom: 30px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(74, 144, 226, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(12px);
+}
+
+.upi-payment-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 50%, #5a9bd4 100%);
+  border-radius: 16px 16px 0 0;
+}
+
+.upi-payment-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(74,144,226,0.03) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.upi-payment-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.12), 0 8px 24px rgba(74,144,226,0.15);
+  border-color: rgba(74, 144, 226, 0.25);
+}
+
+.upi-payment-card:hover::after {
+  opacity: 1;
+}
+
+.upi-payment-card .card-body {
+  text-align: center;
+  padding: 45px 35px;
+  position: relative;
+  z-index: 2;
+}
+
+.upi-payment-card p {
+  margin: 0 0 35px 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  font-weight: 400;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.upi-payment-card .btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  color: white;
+  border: none;
+  padding: 18px 36px;
+  border-radius: 14px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  min-width: 200px;
+  justify-content: center;
+}
+
+.upi-payment-card .btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 16px 32px rgba(74, 144, 226, 0.4);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, #3578c2 100%);
+}
+
+.upi-payment-card .btn:active {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(74, 144, 226, 0.3);
+}
+
+.upi-payment-card .btn i {
+  font-size: 1.4rem;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upi-payment-card .btn:hover i {
+  transform: scale(1.15) rotate(5deg);
+}
+
+.upi-payment-card .btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upi-payment-card .btn:hover::before {
+  left: 100%;
+}
+
+.upi-payment-card .btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.upi-payment-card .btn:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* UPI Features List */
+.upi-features {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 25px;
+  flex-wrap: wrap;
+}
+
+.upi-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.upi-feature:hover {
+  opacity: 1;
+}
+
+.upi-feature i {
+  font-size: 1.5rem;
+  color: var(--accent);
+}
+
+.upi-feature span {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ----------- MESS SECTION ----------- */
+.mess-section {
+  margin-bottom: 40px;
+}
+
+.today-menu {
+  margin-bottom: 20px;
+}
+
+.menu-content {
+  margin-bottom: 20px;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.date-section h4 {
+  margin: 0 0 15px 0;
+  color: var(--primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+
+.menu-item {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.meal-type {
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+
+.menu-items {
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.feedback-summary {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* ----------- QUICK FEEDBACK ----------- */
+.quick-feedback {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.feedback-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.star {
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.star:hover {
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.star:active {
+  transform: scale(1.1);
+}
+
+.star.selected {
+  opacity: 1;
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+/* ----------- COMMENT SECTION ----------- */
+.comment-section {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.comment-section.hidden {
+  display: none;
+}
+
+.feedback-comment {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+  transition: all 0.3s ease;
+  margin-bottom: 10px;
+}
+
+.feedback-comment:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  background: var(--card-bg);
+}
+
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.comment-actions .btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  min-width: 80px;
+}
+
+/* ----------- USER FEEDBACK DISPLAY ----------- */
+.user-feedback {
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--bg) 0%, rgba(74, 144, 226, 0.05) 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.user-rating {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.user-comment {
+  display: block;
+  margin-top: 6px;
+  font-style: italic;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ----------- FEEDBACK LIST ----------- */
+.feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedback-item {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.feedback-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.student-name {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.rating {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.date {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.comment {
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+  color: var(--text);
+  font-style: italic;
+}

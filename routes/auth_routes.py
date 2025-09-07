@@ -58,7 +58,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 def get_me(current_user: User = Depends(get_current_user)):
     return {
         "username": current_user.username,
-        "role": current_user.role,
+        "role": current_user.role.value,  # Return the enum value as string
         "student_id": current_user.student_id
     }
 
@@ -70,7 +70,7 @@ def get_all_users(current_user: User = Depends(require_role([UserRole.admin])), 
         user_data = {
             "id": user.id,
             "username": user.username,
-            "role": user.role,
+            "role": user.role.value,  # Return the enum value as string
             "student_id": user.student_id,
             "phone_no": user.phone_no,
         }

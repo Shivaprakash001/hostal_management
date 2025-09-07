@@ -1,6 +1,24 @@
 import { BASE_URL } from "./config.js";
 import { authManager } from "./auth.js";
-import { api } from "./api.js";
+
+export function initAgentUI() {
+    if (!formEl()) return;
+
+    formEl().addEventListener("submit", (e) => {
+        e.preventDefault();
+        const q = inputEl().value.trim();
+        if (!q) return;
+        // Prefer WS if connected
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            sendViaWS(q);
+        } else {
+            sendViaREST(q);
+        }
+        inputEl().value = "";
+    });
+
+    connectBtnEl().addEventListener("click", () => connectWS());
+}
 
 const messagesEl = () => document.getElementById("agent-messages");
 const inputEl = () => document.getElementById("agent-input");
@@ -14,13 +32,10 @@ let sessionId = localStorage.getItem("agentSessionId") || (() => {
     return id;
 })();
 
-// ---------- Rendering Helpers ----------
-
 function renderTable(rows) {
     const wrapper = document.createElement("div");
-    wrapper.className = "table-wrapper";
     if (!Array.isArray(rows) || rows.length === 0) {
-        wrapper.textContent = "No results found.";
+        wrapper.textContent = "No results";
         return wrapper;
     }
     const keys = Object.keys(rows[0]);
@@ -61,134 +76,154 @@ function renderCard(obj) {
     return card;
 }
 
-// ---------- Main message appender ----------
-
-function appendMessage(role, summary, data = null) {
+function appendMessage(role, text, data = null) {
     const container = messagesEl();
     const item = document.createElement("div");
     item.className = `msg ${role}`;
-
-    // Show human-friendly summary first
-    if (summary) {
-        const summaryEl = document.createElement("div");
-        summaryEl.className = "summary";
-        summaryEl.textContent = summary;
-        item.appendChild(summaryEl);
-    }
-
-    // Handle confirmation
+    
+    // Handle confirmation requests
     if (data && Array.isArray(data) && data.length > 0 && data[0].confirm) {
-        item.appendChild(renderConfirmationRequest(data[0], summary));
+        item.appendChild(renderConfirmationRequest(data[0], text));
     }
-    // Handle disambiguation
+    // Handle disambiguation data
     else if (data && Array.isArray(data) && data.length > 0 && data[0].id) {
-        item.appendChild(renderDisambiguationChoices(data, summary));
-    }
-    // Handle structured data
-    else if (data) {
-        if (Array.isArray(data)) {
-            item.appendChild(renderTable(data));
-        } else if (typeof data === "object") {
-            item.appendChild(renderCard(data));
+        item.appendChild(renderDisambiguationChoices(data, text));
+    } else {
+        // Try to render JSON nicely
+        try {
+            const json = typeof text === "string" ? JSON.parse(text) : text;
+            if (Array.isArray(json)) {
+                item.appendChild(renderTable(json));
+            } else if (json && typeof json === "object") {
+                item.appendChild(renderCard(json));
+            } else {
+                item.textContent = String(text);
+            }
+        } catch {
+            item.textContent = String(text);
         }
     }
-
     container.appendChild(item);
     container.scrollTop = container.scrollHeight;
 }
 
-// ---------- Confirmation + Disambiguation ----------
-
 function renderConfirmationRequest(confirmData, summary) {
     const wrapper = document.createElement("div");
     wrapper.className = "confirmation-wrapper";
-
+    
+    // Show summary
     const summaryEl = document.createElement("div");
     summaryEl.className = "confirmation-summary";
     summaryEl.textContent = summary;
     wrapper.appendChild(summaryEl);
-
+    
+    // Show confirmation buttons
     const buttonsEl = document.createElement("div");
     buttonsEl.className = "confirmation-buttons";
-
+    
     const confirmBtn = document.createElement("button");
     confirmBtn.className = "btn danger";
-    confirmBtn.textContent = "✅ Confirm";
+    confirmBtn.textContent = "Confirm Delete";
     confirmBtn.addEventListener("click", () => handleConfirmation(confirmData, true));
-
+    
     const cancelBtn = document.createElement("button");
     cancelBtn.className = "btn";
-    cancelBtn.textContent = "❌ Cancel";
+    cancelBtn.textContent = "Cancel";
     cancelBtn.addEventListener("click", () => handleConfirmation(confirmData, false));
-
+    
     buttonsEl.appendChild(confirmBtn);
     buttonsEl.appendChild(cancelBtn);
     wrapper.appendChild(buttonsEl);
-
+    
     return wrapper;
 }
 
 function handleConfirmation(confirmData, confirmed) {
+    // Clear confirmation UI
     const confirmEl = document.querySelector(".confirmation-wrapper");
-    if (confirmEl) confirmEl.remove();
-
+    if (confirmEl) {
+        confirmEl.remove();
+    }
+    
     if (confirmed) {
-        appendMessage("user", `Confirmed delete for student ID ${confirmData.student_id}`);
+        // Show confirmation message
+        appendMessage("user", `Confirmed: Delete student ID ${confirmData.student_id}`);
+        
+        // Re-run the original query with confirm=true
         const originalQuery = getLastUserQuery();
-        if (originalQuery) {
-            const modifiedQuery = `${originalQuery} with confirmation`;
-            sendViaREST(modifiedQuery);
+        if (originalQuery && originalQuery.toLowerCase().includes("delete")) {
+            // Extract the student name from the original query
+            const studentNameMatch = originalQuery.match(/delete\s+(?:user\s+)?(\w+)/i);
+            if (studentNameMatch) {
+                const studentName = studentNameMatch[1];
+                const modifiedQuery = `delete student ${studentName} with confirmation`;
+                sendViaREST(modifiedQuery);
+            } else {
+                // Fallback to using student ID
+                const modifiedQuery = `delete student ID ${confirmData.student_id} with confirmation`;
+                sendViaREST(modifiedQuery);
+            }
         }
     } else {
-        appendMessage("user", "❌ Delete operation cancelled.");
+        // Show cancellation message
+        appendMessage("user", "Cancelled: Delete operation cancelled");
     }
 }
 
 function renderDisambiguationChoices(choices, summary) {
     const wrapper = document.createElement("div");
     wrapper.className = "disambiguation-wrapper";
-
+    
+    // Show summary
     const summaryEl = document.createElement("div");
     summaryEl.className = "disambiguation-summary";
     summaryEl.textContent = summary;
     wrapper.appendChild(summaryEl);
-
+    
+    // Show choices
     const choicesEl = document.createElement("div");
     choicesEl.className = "disambiguation-choices";
-
-    choices.forEach(choice => {
+    
+    choices.forEach((choice, index) => {
         const choiceBtn = document.createElement("button");
         choiceBtn.className = "disambiguation-choice";
-        choiceBtn.textContent = `👤 ${choice.name} (ID: ${choice.id}) - Room: ${choice.room_no || 'Unassigned'}`;
-        choiceBtn.addEventListener("click", () => handleDisambiguationChoice(choice));
+        choiceBtn.textContent = `${choice.name} (ID: ${choice.id}) - Room: ${choice.room_no || 'Unassigned'}`;
+        choiceBtn.dataset.choice = JSON.stringify(choice);
+        choiceBtn.addEventListener("click", () => handleDisambiguationChoice(choice, summary));
         choicesEl.appendChild(choiceBtn);
     });
-
+    
     wrapper.appendChild(choicesEl);
     return wrapper;
 }
 
-function handleDisambiguationChoice(choice) {
+function handleDisambiguationChoice(choice, originalSummary) {
+    // Clear disambiguation UI
     const disambEl = document.querySelector(".disambiguation-wrapper");
-    if (disambEl) disambEl.remove();
-
-    appendMessage("user", `You selected: ${choice.name} (ID: ${choice.id})`);
+    if (disambEl) {
+        disambEl.remove();
+    }
+    
+    // Show selected choice
+    appendMessage("user", `Selected: ${choice.name} (ID: ${choice.id})`);
+    
+    // Re-run the original query with the selected student ID
     const originalQuery = getLastUserQuery();
     if (originalQuery) {
-        const modifiedQuery = `${originalQuery} for student ID ${choice.id}`;
+        // Modify the query to use the specific student ID
+        const modifiedQuery = originalQuery.replace(/\b(shiva|shiv)\b/gi, `student ID ${choice.id}`);
         sendViaREST(modifiedQuery);
     }
 }
 
 function getLastUserQuery() {
-    const messages = document.querySelectorAll(".msg.user .summary");
+    const messages = document.querySelectorAll(".msg.user");
     if (messages.length > 0) {
-        return messages[messages.length - 1].textContent;
+        const lastUserMsg = messages[messages.length - 1];
+        return lastUserMsg.textContent;
     }
     return null;
 }
-
-// ---------- Senders ----------
 
 async function sendViaREST(query) {
     appendMessage("user", query);
@@ -204,9 +239,14 @@ async function sendViaREST(query) {
         });
         const payload = await res.json();
         if (!res.ok) {
+            if (res.status === 401) {
+                appendMessage("error", "Unauthorized. Please log in.");
+                return;
+            }
             appendMessage("error", payload.detail || "Agent error");
             return;
         }
+        // Expect { summary, data }
         if (payload.summary) appendMessage("agent", payload.summary, payload.data);
     } catch (err) {
         appendMessage("error", String(err));
@@ -218,18 +258,18 @@ function connectWS() {
     const wsUrl = BASE_URL.replace("http", "ws") + "/api/agent/ws/agent";
     socket = new WebSocket(wsUrl);
 
-    socket.onopen = () => appendMessage("system", "✅ Connected to agent");
+    socket.onopen = () => appendMessage("system", "WS connected");
     socket.onmessage = (event) => {
         try {
             const msg = JSON.parse(event.data);
             if (msg.summary) appendMessage("agent", msg.summary, msg.data);
             if (msg.error) appendMessage("error", msg.error);
-        } catch {
+        } catch (e) {
             appendMessage("agent", event.data);
         }
     };
-    socket.onclose = () => appendMessage("system", "❌ Disconnected from agent");
-    socket.onerror = () => appendMessage("error", "⚠️ WS error");
+    socket.onclose = () => appendMessage("system", "WS disconnected");
+    socket.onerror = () => appendMessage("error", "WS error");
 }
 
 function sendViaWS(query) {
@@ -241,25 +281,7 @@ function sendViaWS(query) {
     socket.send(JSON.stringify({ query, session_id: sessionId }));
 }
 
-// ---------- UI Init ----------
-
-function initAgentUI() {
-    if (!formEl()) return;
-    formEl().addEventListener("submit", (e) => {
-        e.preventDefault();
-        const q = inputEl().value.trim();
-        if (!q) return;
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            sendViaWS(q);
-        } else {
-            sendViaREST(q);
-        }
-        inputEl().value = "";
-    });
-
-    connectBtnEl().addEventListener("click", () => connectWS());
-}
-
+// Basic styles injection if not present (optional)
 function ensureStyles() {
     const styleId = "agent-styles";
     if (document.getElementById(styleId)) return;
@@ -267,7 +289,7 @@ function ensureStyles() {
     style.id = styleId;
     style.textContent = `
     .agent-chat { display: flex; flex-direction: column; height: 420px; }
-    .agent-messages { flex: 1; overflow: auto; border: 1px solid #ddd; padding: 8px; border-radius: 8px; background: #fff; }
+    .agent-messages { flex: 1; overflow: auto; border: 1px solid #3333; padding: 8px; border-radius: 8px; background: var(--panel-bg, #fff); }
     .agent-form { margin-top: 8px; display: flex; }
     .agent-form input { flex: 1; margin-right: 8px; }
     .msg { padding: 6px 8px; margin: 6px 0; border-radius: 6px; }
@@ -275,64 +297,9 @@ function ensureStyles() {
     .msg.agent { background: #f1f8e9; }
     .msg.system { background: #ede7f6; font-style: italic; }
     .msg.error { background: #ffebee; color: #b71c1c; }
-    .summary { margin-bottom: 6px; font-weight: bold; }
-    .table-wrapper { overflow-x: auto; margin-top: 6px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 6px; border: 1px solid #ddd; text-align: left; }
-    .card { padding: 6px; border: 1px solid #ddd; border-radius: 6px; margin-top: 6px; }
-    .row { margin: 2px 0; }
-    .confirmation-buttons, .disambiguation-choices { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
-    button { cursor: pointer; padding: 4px 8px; border-radius: 4px; border: none; }
-    button.btn.danger { background: #d32f2f; color: white; }
-    button.disambiguation-choice { background: #f5f5f5; border: 1px solid #ccc; }
     `;
     document.head.appendChild(style);
 }
-
-
-export async function runAgentCommand(command) {
-  const container = document.getElementById("panel-agent");
-  const output = container.querySelector("#agent-output");
-  const log = container.querySelector("#agent-log");
-
-  output.textContent = "⏳ Running: " + command;
-  log.innerHTML = "";
-
-  try {
-    const res = await api("/agent/run", {
-      method: "POST",
-      body: JSON.stringify({ command }),
-    });
-
-    // Ensure response formatting
-    let userMessage = res.message || "✅ Done";
-    let logs = res.logs || [];
-
-    // If message comes tokenized like ['C','a','l','c'] → join it
-    if (Array.isArray(userMessage)) {
-      userMessage = userMessage.join("");
-    }
-
-    output.textContent = userMessage;
-
-    // Show execution log steps
-    if (Array.isArray(logs)) {
-      logs.forEach((step, i) => {
-        let cleanStep = step;
-        if (Array.isArray(step)) {
-          cleanStep = step.join("");
-        }
-        const li = document.createElement("li");
-        li.textContent = `Step ${i + 1}: ${cleanStep}`;
-        log.appendChild(li);
-      });
-    }
-  } catch (err) {
-    output.textContent = "❌ Error running agent";
-    console.error(err);
-  }
-}
-
 
 document.addEventListener("DOMContentLoaded", () => {
     ensureStyles();

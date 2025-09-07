@@ -410,8 +410,15 @@ class CreatePaymentByNameInput(BaseModel):
     status: Optional[str] = None
 
 async def create_payment_by_name(student_name: str, amount: float, status: Optional[str] = None) -> Dict[str, Any]:
+    from datetime import datetime
     url = f"{settings.hms_api_base}/payments/by-name/{student_name}"
-    payload = {"student_name": student_name, "amount": amount}
+    now = datetime.now()
+    payload = {
+        "amount": amount,
+        "month": now.month,
+        "year": now.year,
+        "payment_method": "Cash"
+    }
     if status:
         payload["status"] = status
     client = HttpClient.client()

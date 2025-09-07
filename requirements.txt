@@ -1,23 +1,28 @@
-flask 
-sqlalchemy 
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary  # PostgreSQL driver for production
 python-dotenv
 alembic
-fastapi 
-uvicorn
-python-jose 
+python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
-python-jose[cryptography]
+jinja2
 
+# AI/ML dependencies
 langchain
 langchain-community
 langchain_groq
 langchain_huggingface
-pypdf
-dotenv
-ipykernel
+langchain-chroma
 sentence-transformers
-chromadb
 langchain_core
 duckduckgo-search
 langgraph
+
+# Utilities
+pypdf
+reportlab
+qrcode
+pandas
+ipykernel

@@ -44,6 +44,20 @@ function filterRooms(list) {
   });
 }
 
+function hasActiveFilters() {
+  const unpaidOnly = !!(filterUnpaidOnly && filterUnpaidOnly.checked);
+  const minPrice = filterMinPrice ? parseFloat(filterMinPrice.value) : NaN;
+  const maxPrice = filterMaxPrice ? parseFloat(filterMaxPrice.value) : NaN;
+
+  return unpaidOnly || !Number.isNaN(minPrice) || !Number.isNaN(maxPrice);
+}
+
+function updateClearButtonVisibility() {
+  if (clearRoomFiltersBtn) {
+    clearRoomFiltersBtn.style.display = hasActiveFilters() ? "inline-block" : "none";
+  }
+}
+
 function renderRoomsList(list) {
   roomsList.innerHTML = "";
   if (!list || !list.length) {
@@ -80,6 +94,7 @@ export function initRooms() {
   if (applyRoomFiltersBtn) {
     applyRoomFiltersBtn.addEventListener("click", async () => {
       renderRoomsList(filterRooms(cachedRooms));
+      updateClearButtonVisibility();
     });
   }
 
@@ -89,12 +104,27 @@ export function initRooms() {
       if (filterMinPrice) filterMinPrice.value = "";
       if (filterMaxPrice) filterMaxPrice.value = "";
       renderRoomsList(filterRooms(cachedRooms));
+      updateClearButtonVisibility();
     });
   }
 
   if (filterUnpaidOnly) {
     filterUnpaidOnly.addEventListener("change", () => {
       renderRoomsList(filterRooms(cachedRooms));
+      updateClearButtonVisibility();
+    });
+  }
+
+  // Add input event listeners for price filters
+  if (filterMinPrice) {
+    filterMinPrice.addEventListener("input", () => {
+      updateClearButtonVisibility();
+    });
+  }
+
+  if (filterMaxPrice) {
+    filterMaxPrice.addEventListener("input", () => {
+      updateClearButtonVisibility();
     });
   }
   formAddRoom.addEventListener("submit", async e => {

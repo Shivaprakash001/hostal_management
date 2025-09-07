@@ -5,23 +5,55 @@ from models.models import Room
 def seed_rooms():
     session = Session()
 
-    # Predefined room IDs/numbers
-    room_numbers = [
-        "G1", "G2", "G3", "G4", "G5",
-        "101", "102", "103", "104", "105",
-        "201", "202", "203", "204", "205",
-        "301", "302", "303", "304", "305",
-        "401", "402", "403", "404", "405"
+    # Predefined room IDs/numbers with rent prices
+    room_data = [
+        # Ground floor rooms (cheaper)
+        {"room_no": "G1", "price": 3500},
+        {"room_no": "G2", "price": 3500},
+        {"room_no": "G3", "price": 3500},
+        {"room_no": "G4", "price": 3500},
+        {"room_no": "G5", "price": 3500},
+
+        # First floor rooms
+        {"room_no": "101", "price": 4000},
+        {"room_no": "102", "price": 4000},
+        {"room_no": "103", "price": 4000},
+        {"room_no": "104", "price": 4000},
+        {"room_no": "105", "price": 4000},
+
+        # Second floor rooms
+        {"room_no": "201", "price": 4500},
+        {"room_no": "202", "price": 4500},
+        {"room_no": "203", "price": 4500},
+        {"room_no": "204", "price": 4500},
+        {"room_no": "205", "price": 4500},
+
+        # Third floor rooms
+        {"room_no": "301", "price": 5000},
+        {"room_no": "302", "price": 5000},
+        {"room_no": "303", "price": 5000},
+        {"room_no": "304", "price": 5000},
+        {"room_no": "305", "price": 5000},
+
+        # Fourth floor rooms (most expensive)
+        {"room_no": "401", "price": 5500},
+        {"room_no": "402", "price": 5500},
+        {"room_no": "403", "price": 5500},
+        {"room_no": "404", "price": 5500},
+        {"room_no": "405", "price": 5500}
     ]
 
-    for rn in room_numbers:
+    for room_info in room_data:
         # Add only if not already in DB
-        if not session.query(Room).filter_by(room_no=rn).first():
-            session.add(Room(room_no=rn))
+        if not session.query(Room).filter_by(room_no=room_info["room_no"]).first():
+            session.add(Room(
+                room_no=room_info["room_no"],
+                price=room_info["price"]
+            ))
 
     session.commit()
     session.close()
-    print("Rooms seeded successfully!")
+    print("Rooms seeded successfully with rent prices!")
 
 def init_rooms():
     try:

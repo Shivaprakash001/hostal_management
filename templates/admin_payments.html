@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Payment Verification</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+  <link rel="stylesheet" href="/static/css/responsive.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/umd/lucide.css">
+</head>
+  <body>
+  <!-- Theme Toggle -->
+  <button id="theme-toggle" class="theme-toggle">
+    <i data-lucide="moon"></i>
+  </button>
+
+  <div class="admin-container">
+    <header>
+      <h1>Payment Verification Management</h1>
+      <div>
+        <button id="logout-btn" class="btn danger">Logout</button>
+      </div>
+    </header>
+
+    <!-- Payment Statistics -->
+    <section class="stats-section">
+      <h2>Payment Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="total-payments">0</div>
+          <div class="stat-label">Total Payments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="pending-verification">0</div>
+          <div class="stat-label">Pending Verification</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="verified-payments">0</div>
+          <div class="stat-label">Verified Payments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="total-amount">₹0</div>
+          <div class="stat-label">Total Amount</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Payment Verification Table -->
+    <section class="payments-section">
+      <h2>Payment Verification Queue</h2>
+      <div id="payments-loading" class="loading">Loading payments...</div>
+      <div id="payments-table-container" style="display: none;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Room</th>
+              <th>Month/Year</th>
+              <th>Amount</th>
+              <th>Payment Method</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="payments-tbody">
+            <!-- Payment rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- All Payments History -->
+    <section class="all-payments-section">
+      <h2>All Payments History</h2>
+      <div id="all-payments-loading" class="loading">Loading payment history...</div>
+      <div id="all-payments-table-container" style="display: none;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Room</th>
+              <th>Month/Year</th>
+              <th>Amount</th>
+              <th>Payment Method</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="all-payments-tbody">
+            <!-- All payment rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { authManager } from "/static/js/auth.js";
+    import { api } from "/static/js/api.js";
+
+    class AdminPaymentManager {
+      constructor() {
+        this.payments = [];
+        this.init();
+      }
+
+      async init() {
+        if (!authManager.isAuthenticated() || authManager.role !== 'admin') {
+          window.location.href = '/';
+          return;
+        }
+
+        await this.loadPayments();
+        this.displayPayments();
+        this.displayStats();
+      }
+
+      async loadPayments() {
+        try {
+          this.payments = await api("/payments/all-with-students");
+        } catch (error) {
+          console.error("Error loading payments:", error);
+          this.showError("Failed to load payments");
+        }
+      }
+
+      displayStats() {
+        if (!this.payments || this.payments.length === 0) return;
+
+        let totalPayments = this.payments.length;
+        let pendingVerification = 0;
+        let verifiedPayments = 0;
+        let totalAmount = 0;
+
+        this.payments.forEach(payment => {
+          totalAmount += payment.amount;
+          if (payment.status === "Paid") {
+            verifiedPayments++;
+          } else if (payment.status === "Pending" && payment.payment_method === "Online") {
+            pendingVerification++;
+          }
+        });
+
+        document.getElementById("total-payments").textContent = totalPayments;
+        document.getElementById("pending-verification").textContent = pendingVerification;
+        document.getElementById("verified-payments").textContent = verifiedPayments;
+        document.getElementById("total-amount").textContent = `₹${totalAmount.toLocaleString()}`;
+      }
+
+      displayPayments() {
+        const loadingEl = document.getElementById("payments-loading");
+        const tableContainer = document.getElementById("payments-table-container");
+        const tbody = document.getElementById("payments-tbody");
+
+        const allLoadingEl = document.getElementById("all-payments-loading");
+        const allTableContainer = document.getElementById("all-payments-table-container");
+        const allTbody = document.getElementById("all-payments-tbody");
+
+        if (!this.payments || this.payments.length === 0) {
+          loadingEl.textContent = "No payments found.";
+          allLoadingEl.textContent = "No payments found.";
+          return;
+        }
+
+        // Hide loading, show tables
+        loadingEl.style.display = "none";
+        tableContainer.style.display = "block";
+        allLoadingEl.style.display = "none";
+        allTableContainer.style.display = "block";
+
+        // Clear existing rows
+        tbody.innerHTML = "";
+        allTbody.innerHTML = "";
+
+        // Sort payments by date (newest first)
+        const sortedPayments = [...this.payments].sort((a, b) =>
+          new Date(b.date) - new Date(a.date)
+        );
+
+        // Separate pending verification payments
+        const pendingVerificationPayments = sortedPayments.filter(p =>
+          p.status === "Pending" && p.payment_method === "Online"
+        );
+
+        const otherPayments = sortedPayments.filter(p =>
+          !(p.status === "Pending" && p.payment_method === "Online")
+        );
+
+        // Display pending verification payments
+        this.displayPaymentRows(pendingVerificationPayments, tbody);
+
+        // Display all payments
+        this.displayPaymentRows(sortedPayments, allTbody);
+      }
+
+      displayPaymentRows(payments, tbody) {
+        payments.forEach(payment => {
+          const row = document.createElement("tr");
+
+          // Format month/year
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const monthYear = `${monthNames[payment.month - 1]}/${payment.year}`;
+
+          // Format date
+          const paymentDate = new Date(payment.date).toLocaleDateString();
+
+          // Status badge
+          let statusText = payment.status;
+          let statusClass = payment.status === "Paid" ? "success" :
+                          payment.status === "Pending" ? "warning" : "danger";
+
+          if (payment.payment_method === "Online" && payment.status === "Pending") {
+            statusText = "Pending Verification";
+            statusClass = "info";
+          }
+
+          const statusBadge = `<span class="badge ${statusClass}">${statusText}</span>`;
+
+          // Actions
+          let actions = "";
+          if (payment.status === "Pending" && payment.payment_method === "Online") {
+            actions = `
+              <button class="btn success" onclick="verifyPayment(${payment.id})">Verify</button>
+              <button class="btn danger" onclick="rejectPayment(${payment.id})">Reject</button>
+            `;
+          } else if (payment.status === "Paid") {
+            actions = `<button class="btn" onclick="downloadReceipt(${payment.id})">Receipt</button>`;
+          } else {
+            actions = "N/A";
+          }
+
+          row.innerHTML = `
+            <td>${payment.student_name || "N/A"}</td>
+            <td>${payment.room_no || "N/A"}</td>
+            <td>${monthYear}</td>
+            <td>₹${payment.amount.toLocaleString()}</td>
+            <td>${payment.payment_method}</td>
+            <td>${statusBadge}</td>
+            <td>${paymentDate}</td>
+            <td>${actions}</td>
+          `;
+
+          tbody.appendChild(row);
+        });
+      }
+
+      showError(message) {
+        alert(message);
+      }
+    }
+
+    // Global functions
+    window.verifyPayment = async function(paymentId) {
+      if (!confirm("Verify this payment as completed?")) return;
+
+      try {
+        const result = await api(`/payments/admin/verify/${paymentId}`, {
+          method: "POST"
+        });
+
+        if (result) {
+          alert("Payment verified successfully!");
+          window.location.reload();
+        }
+      } catch (error) {
+        alert("Failed to verify payment: " + error.message);
+      }
+    };
+
+    window.rejectPayment = async function(paymentId) {
+      if (!confirm("Reject this payment?")) return;
+
+      try {
+        const result = await api(`/payments/admin/reject/${paymentId}`, {
+          method: "POST"
+        });
+
+        if (result) {
+          alert("Payment rejected!");
+          window.location.reload();
+        }
+      } catch (error) {
+        alert("Failed to reject payment: " + error.message);
+      }
+    };
+
+    window.downloadReceipt = async function(paymentId) {
+      try {
+        const link = document.createElement("a");
+        link.href = `/payments/${paymentId}/receipt`;
+        link.download = `receipt_${paymentId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        alert("Failed to download receipt: " + error.message);
+      }
+    };
+
+    // Initialize when DOM is loaded
+    document.addEventListener("DOMContentLoaded", () => {
+      new AdminPaymentManager();
+    });
+
+    // Logout functionality
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('user_role');
+      window.location.href = '/';
+    });
+
+    // Theme toggle
+    const toggleBtn = document.getElementById("theme-toggle");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+        toggleBtn.innerHTML = document.body.classList.contains("dark")
+          ? '<i data-lucide="sun"></i>'
+          : '<i data-lucide="moon"></i>';
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+          lucide.createIcons();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

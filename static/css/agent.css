@@ -1,0 +1,398 @@
+/* ----------- AGENT CHAT ----------- */
+.agent-chat {
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+}
+
+.agent-messages {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #3333;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--panel-bg, #fff);
+}
+
+/* Add table styling inside agent messages */
+.agent-messages table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.agent-messages th,
+.agent-messages td {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.agent-messages th {
+  background-color: #f0f0f0;
+  font-weight: 600;
+}
+
+.agent-form {
+  margin-top: 8px;
+  display: flex;
+}
+
+.agent-form input {
+  flex: 1;
+  margin-right: 8px;
+}
+
+.msg {
+  padding: 6px 8px;
+  margin: 6px 0;
+  border-radius: 6px;
+}
+
+.msg.user {
+  background: #e3f2fd;
+}
+
+.msg.agent {
+  background: #f1f8e9;
+}
+
+.msg.system {
+  background: #ede7f6;
+  font-style: italic;
+}
+
+.msg.error {
+  background: #ffebee;
+  color: #b71c1c;
+}
+
+/* ----------- DISAMBIGUATION UI ----------- */
+.disambiguation-wrapper {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 12px 0;
+}
+
+.disambiguation-summary {
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.disambiguation-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.disambiguation-choice {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  color: var(--primary);
+}
+
+.disambiguation-choice:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  transform: translateX(4px);
+}
+
+.disambiguation-choice:active {
+  transform: translateX(4px) scale(0.98);
+}
+
+/* Responsive disambiguation */
+@media (max-width: 768px) {
+  .disambiguation-choices {
+    gap: 6px;
+  }
+
+  .disambiguation-choice {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ----------- CONFIRMATION UI ----------- */
+.confirmation-wrapper {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 12px 0;
+}
+
+.confirmation-summary {
+  font-weight: 600;
+  color: #856404;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.confirmation-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.confirmation-buttons .btn {
+  min-width: 100px;
+}
+
+.confirmation-buttons .btn.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.confirmation-buttons .btn.danger:hover {
+  background: #c62828;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(226, 34, 34, 0.3);
+}
+
+/* ----------- AGENT PANEL ----------- */
+#panel-agent {
+  padding: 20px;
+}
+
+#panel-agent h2 {
+  margin: 0 0 20px 0;
+  color: var(--primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+
+/* ----------- AGENT INPUT FORM ----------- */
+.agent-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.agent-form input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 15px;
+  transition: var(--transition);
+}
+
+.agent-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 6px rgba(83, 71, 131, 0.1);
+  background: var(--card-bg);
+}
+
+.agent-form input::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.agent-form .btn {
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ----------- AGENT MESSAGES CONTAINER ----------- */
+.agent-messages {
+  background: var(--card-bg);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 16px;
+  height: 300px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+/* Scrollbar styling for agent messages */
+.agent-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.agent-messages::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 3px;
+}
+
+.agent-messages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.agent-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* ----------- MESSAGE STYLES ----------- */
+.msg {
+  padding: 12px 16px;
+  margin: 8px 0;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 1.5;
+  position: relative;
+  word-wrap: break-word;
+}
+
+.msg.user {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: white;
+  margin-left: 40px;
+  text-align: right;
+  box-shadow: var(--shadow);
+}
+
+.msg.agent {
+  background: var(--bg);
+  color: var(--text);
+  margin-right: 40px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow);
+}
+
+.msg.system {
+  background: linear-gradient(135deg, var(--warning), var(--warning-light));
+  color: #856404;
+  font-style: italic;
+  text-align: center;
+  border: 1px solid var(--warning);
+  box-shadow: var(--shadow);
+}
+
+.msg.error {
+  background: linear-gradient(135deg, var(--danger), var(--danger-light));
+  color: white;
+  text-align: center;
+  border: 1px solid var(--danger);
+  box-shadow: var(--shadow);
+}
+
+/* ----------- TABLES IN AGENT MESSAGES ----------- */
+.agent-messages table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+  background: white;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.agent-messages th,
+.agent-messages td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.agent-messages th {
+  background: var(--bg);
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.agent-messages tbody tr:nth-child(even) {
+  background: var(--bg-secondary);
+}
+
+.agent-messages tbody tr:hover {
+  background: var(--accent-light);
+  color: white;
+}
+
+/* ----------- AGENT CONNECT BUTTON ----------- */
+#agent-connect {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+}
+
+#agent-connect:hover {
+  background: var(--success-light);
+  box-shadow: 0 8px 20px rgba(56, 161, 105, 0.3);
+}
+
+/* ----------- RESPONSIVE AGENT ----------- */
+@media (max-width: 768px) {
+  .agent-chat {
+    height: 350px;
+  }
+
+  .agent-messages {
+    height: 250px;
+    padding: 12px;
+  }
+
+  .agent-form {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .agent-form input {
+    margin-right: 0;
+  }
+
+  .msg.user {
+    margin-left: 20px;
+  }
+
+  .msg.agent {
+    margin-right: 20px;
+  }
+
+  .agent-messages table {
+    font-size: 12px;
+  }
+
+  .agent-messages th,
+  .agent-messages td {
+    padding: 6px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .agent-chat {
+    height: 300px;
+  }
+
+  .agent-messages {
+    height: 200px;
+    padding: 8px;
+  }
+
+  .msg {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .agent-form input {
+    font-size: 16px; /* Prevent zoom on mobile */
+  }
+}

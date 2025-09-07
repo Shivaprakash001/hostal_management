@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student Dashboard - Hostel Management</title>
+  <link rel="stylesheet" href="/static/css/base.css" />
+  <link rel="stylesheet" href="/static/css/components.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/forms.css" />
+  <link rel="stylesheet" href="/static/css/student.css" />
+  <link rel="stylesheet" href="/static/css/payment.css" />
+  <link rel="stylesheet" href="/static/css/mess.css" />
+  <link rel="stylesheet" href="/static/css/responsive.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body>
+
+  <!-- Theme Toggle -->
+  <button id="theme-toggle" class="theme-toggle">
+    <i data-lucide="moon"></i>
+  </button>
+
+  <!-- Student Dashboard -->
+  <div id="student-dashboard">
+    <header>
+      <h1>Student Dashboard</h1>
+      <div>
+        <button id="logout-btn" class="btn danger">Logout</button>
+      </div>
+    </header>
+
+    <!-- Student Info Section -->
+    <section class="student-info">
+      <h2>My Information</h2>
+      <div id="student-info-loading" class="loading">Loading student information...</div>
+      <div id="student-info" class="info-card" style="display: none;">
+        <div class="info-row">
+          <strong>Name:</strong> <span id="student-name">-</span>
+        </div>
+        <div class="info-row">
+          <strong>Room:</strong> <span id="student-room">-</span>
+        </div>
+        <div class="info-row">
+          <strong>Phone:</strong> <span id="student-phone">-</span>
+        </div>
+        <div class="info-row">
+          <strong>Status:</strong> <span id="student-status">-</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Payment Summary -->
+    <section class="payment-summary">
+      <h2>Payment Summary</h2>
+      <div id="payment-summary-loading" class="loading">Loading payment summary...</div>
+      <div class="stats-grid" id="payment-stats" style="display: none;">
+        <div class="stat-card">
+          <div class="stat-number" id="total-paid">₹0</div>
+          <div class="stat-label">Total Paid</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="total-pending">₹0</div>
+          <div class="stat-label">Pending Amount</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="paid-count">0</div>
+          <div class="stat-label">Paid Payments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="pending-count">0</div>
+          <div class="stat-label">Pending Payments</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Payment History -->
+    <section class="payment-history">
+      <h2>Payment History</h2>
+      <div id="payment-history-loading" class="loading">Loading payment history...</div>
+      <div id="payment-history-table" style="display: none;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Month/Year</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Payment Method</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="payment-history-body">
+            <!-- Payment rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Mess Section -->
+    <section class="mess-section">
+      <h2>Mess Management</h2>
+      <!-- Today's Menu Display -->
+      <div class="today-menu">
+        <h3>Today's Menu</h3>
+        <div id="today-menu-loading" class="loading">Loading today's menu...</div>
+        <div id="today-menu-content" class="menu-content"></div>
+      </div>
+
+      <!-- Menu History -->
+      <div class="menu-history">
+        <h3>Menu History</h3>
+        <div class="filters" style="margin-bottom: 15px;">
+          <input id="menu-date-filter" type="date" placeholder="Filter by date">
+          <select id="menu-type-filter">
+            <option value="">All Meal Types</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snacks">Snacks</option>
+          </select>
+          <button id="apply-menu-filters" class="btn">Apply</button>
+        </div>
+        <div id="menu-history-loading" class="loading">Loading menu history...</div>
+        <div id="menu-history-content" class="menu-list"></div>
+      </div>
+
+
+
+      <!-- Feedback History -->
+      <div class="feedback-history">
+        <h3>My Feedback History</h3>
+        <div id="feedback-history-loading" class="loading">Loading feedback...</div>
+        <div id="feedback-history-content" class="feedback-list"></div>
+      </div>
+    </section>
+
+    <!-- UPI Payment Section -->
+    <section class="upi-payment-section">
+      <h2>Pay Hostel Rent</h2>
+      <div class="upi-payment-card">
+        <div class="card-body">
+          <p>Make secure payments using UPI (GPay, PhonePe, Paytm, etc.)</p>
+          <button id="student-upi-payment-btn" class="btn primary" onclick="window.open('/payment', '_blank')" >
+            <i data-lucide="credit-card"></i> Pay via UPI QR
+          </button>
+          <div class="upi-features">
+            <div class="upi-feature">
+              <i data-lucide="smartphone"></i>
+              <span>Mobile Apps</span>
+            </div>
+            <div class="upi-feature">
+              <i data-lucide="shield"></i>
+              <span>Secure</span>
+            </div>
+            <div class="upi-feature">
+              <i data-lucide="zap"></i>
+              <span>Instant</span>
+            </div>
+            <div class="upi-feature">
+              <i data-lucide="check-circle"></i>
+              <span>Reliable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="/static/js/student_dashboard.js"></script>
+  <script type="module" src="/static/js/mess.js?v=1"></script>
+  <script>
+    lucide.createIcons();
+
+    // Theme toggle
+    const toggleBtn = document.getElementById("theme-toggle");
+    toggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      toggleBtn.innerHTML = document.body.classList.contains("dark")
+        ? '<i data-lucide="sun"></i>'
+        : '<i data-lucide="moon"></i>';
+      lucide.createIcons();
+    });
+
+    // Logout functionality
+    const logoutBtn = document.getElementById("logout-btn");
+    logoutBtn.addEventListener("click", () => {
+      // Clear authentication data
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('user_role');
+      // Redirect to login
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>

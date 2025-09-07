@@ -6,6 +6,7 @@ export class AuthManager {
         this.token = localStorage.getItem('auth_token');
         this.username = localStorage.getItem('username');
         this.role = localStorage.getItem('user_role');
+        this.studentId = localStorage.getItem('student_id');
     }
 
     isAuthenticated() {
@@ -40,14 +41,18 @@ export class AuthManager {
             this.token = data.access_token;
             this.username = username;
             
-            // Get user info to determine role
+            // Get user info to determine role and student_id
             const userInfo = await this.getCurrentUser();
-            this.role = userInfo.role;
+            this.role = userInfo.role.toLowerCase();
+            this.studentId = userInfo.student_id;
 
             // Store in localStorage
             localStorage.setItem('auth_token', this.token);
             localStorage.setItem('username', this.username);
             localStorage.setItem('user_role', this.role);
+            if (this.studentId) {
+                localStorage.setItem('student_id', this.studentId);
+            }
 
             return { success: true, user: userInfo };
         } catch (error) {
@@ -79,13 +84,29 @@ export class AuthManager {
         this.token = null;
         this.username = null;
         this.role = null;
+        this.studentId = null;
         localStorage.removeItem('auth_token');
         localStorage.removeItem('username');
         localStorage.removeItem('user_role');
+        localStorage.removeItem('student_id');
     }
 
     getAuthHeaders() {
         return this.token ? { 'Authorization': `Bearer ${this.token}` } : {};
+    }
+
+    // Get current user object for UI components
+    getUser() {
+        if (!this.isAuthenticated()) {
+            return null;
+        }
+
+        return {
+            username: this.username,
+            role: this.role,
+            student_id: this.studentId,
+            isAdmin: this.isAdmin()
+        };
     }
 }
 

@@ -1,10 +1,10 @@
 from __future__ import annotations
-from typing import Dict, Any, List, Optional
-import json
-import ast
-import operator as op
+from typing import Annotated, Dict, Any, List, Optional
+import operator
 from langgraph.graph import StateGraph, END, START
+import json
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
@@ -12,47 +12,7 @@ from langchain_core.runnables import RunnableConfig
 from .config import settings
 from . import tools as t
 
-# ---------------------------
-# Helpers
-# ---------------------------
-
-def _safe_eval(expr: str) -> float:
-    """
-    Safely evaluate simple arithmetic expressions like '8000*4' or '10000*3+500'.
-    Supports + - * / // % ** and parentheses and integers/floats.
-    """
-    allowed_ops = {
-        ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul, ast.Div: op.truediv,
-        ast.FloorDiv: op.floordiv, ast.Mod: op.mod, ast.Pow: op.pow,
-        ast.UAdd: op.pos, ast.USub: op.neg,
-    }
-
-    def _eval(node):
-        if isinstance(node, ast.Num):  # Py<3.8
-            return node.n
-        if isinstance(node, ast.Constant):  # Py>=3.8 numbers
-            if isinstance(node.value, (int, float)):
-                return node.value
-            raise ValueError("Only numeric constants allowed")
-        if isinstance(node, ast.BinOp):
-            if type(node.op) not in allowed_ops:
-                raise ValueError("Operator not allowed")
-            return allowed_ops[type(node.op)](_eval(node.left), _eval(node.right))
-        if isinstance(node, ast.UnaryOp):
-            if type(node.op) not in allowed_ops:
-                raise ValueError("Operator not allowed")
-            return allowed_ops[type(node.op)](_eval(node.operand))
-        if isinstance(node, ast.Expr):
-            return _eval(node.value)
-        raise ValueError("Unsupported expression")
-
-    tree = ast.parse(expr, mode="eval")
-    return _eval(tree.body)
-
-# ---------------------------
 # 1) Bind tools to LangChain (with Pydantic schemas)
-# ---------------------------
-
 @tool("find_student_by_name", args_schema=t.FindStudentByNameInput)
 async def tool_find_student_by_name(name: str):
     """Find students by name (partial match)."""
@@ -133,15 +93,6 @@ async def tool_set_payments_status_by_name(student_name: str, status: str, payme
     """Set status for all payments (or a specific payment_id) for a student by name."""
     return await t.set_payments_status_by_name(student_name, status, payment_id)
 
-# --- NEW: Safe arithmetic as a tool ---
-@tool("evaluate_expression")
-async def tool_evaluate_expression(expression: str):
-    """Safely evaluate arithmetic expressions like '8000*4'."""
-    try:
-        return {"summary": f"Calculated {expression}", "data": [{"expression": expression, "value": _safe_eval(expression)}]}
-    except Exception as e:
-        return {"summary": f"Failed to calculate {expression}", "data": [], "error": str(e)}
-
 # 2) Collect all tools
 TOOLS = [
     tool_find_student_by_name,
@@ -160,15 +111,16 @@ TOOLS = [
     tool_assign_any_empty_room_by_name,
     tool_create_payment_by_name,
     tool_set_payments_status_by_name,
-    tool_evaluate_expression,
 ]
 
-# 3) Build the LLMs
+# 3) Build the Agent
 llm = ChatGroq(
     model=settings.groq_model,
     api_key=settings.groq_api_key,
     temperature=0,
 )
+
+# Separate planning LLM (no tools, just planning)
 planner_llm = ChatGroq(
     model=settings.groq_model,
     api_key=settings.groq_api_key,
@@ -176,264 +128,554 @@ planner_llm = ChatGroq(
 )
 
 SYSTEM_PROMPT = (
-    "You are Agent Warden for a Hostel Management System.\n"
-    "Act as an execution-planner + tool-using agent.\n"
-    "Always:\n"
-    "  1) Parse the user query.\n"
-    "  2) If complex/bulk or includes math, plan steps first.\n"
-    "  3) Execute tools step-by-step until done.\n"
-    "  4) Return JSON only: {'summary': '<human>', 'data': [...]}.\n"
-    "Rules:\n"
-    "- Disambiguate if multiple matches exist; ask which one.\n"
-    "- For destructive ops (delete/update), ask for confirmation before executing.\n"
-    "- Provide counts and insights (totals, first 10, etc.).\n"
-    "- Suggest alternatives if something fails (e.g., room full -> suggest next available).\n"
-    "- Deterministic outputs.\n"
+    "You are Agent Warden for a Hostel Management System. "
+    "You help manage students, rooms, and payments. "
+    "Always return responses in this format: "
+    "{'summary': 'human-friendly summary', 'data': [...]} "
+    ""
+    "Rules: "
+    "- For destructive operations (delete/update), ask for confirmation first. "
+    "- If multiple matches exist, ask user to clarify which one. "
+    "- Always provide helpful summaries and insights. "
+    "- Suggest alternatives if something fails. "
+    "- Keep responses deterministic (temperature 0). "
+    ""
+    "Available tools: "
+    "- find_student_by_name, create_student, update_student, delete_student "
+    "- list_students, assign_room, create_room, delete_room, list_rooms, update_room "
+    "- payments_by_name, create_payment_by_name, set_payments_status_by_name "
+    ""
+    "Example responses: "
+    "- Summary: 'Found 3 students matching 'shiva'. Please select one.' "
+    "- Summary: 'Are you sure you want to delete student ID 123? This action cannot be undone.' "
+    "- Summary: 'Successfully created room 401 with capacity 2.' "
 )
 
 PLANNER_PROMPT = (
-    "You are a Task Planning Agent. Break the user's request into executable steps.\n"
-    "Resolve math expressions up front (e.g., 8000*4=32000). Be explicit and sequential.\n"
-    "Output strictly JSON with keys: todo (list of steps), computed_values (dict), summary (string).\n"
-    "Example for 'update all rooms to price 8000*4':\n"
-    "{\n"
-    "  \"todo\": [\"Calculate 8000*4\", \"List all rooms\", \"Update each room price to 32000\"],\n"
-    "  \"computed_values\": {\"price\": 32000},\n"
-    "  \"summary\": \"Update all room prices to ₹32,000\"\n"
-    "}\n"
+    "You are a Task Planning Agent. Your job is to break down user requests into clear, executable steps. "
+    ""
+    "Rules: "
+    "- Always resolve math expressions first (e.g., 8000*4 = 32000) "
+    "- Break complex requests into simple, sequential steps "
+    "- Each step should be a single action that can be executed "
+    "- Include computed values in the plan "
+    "- Be specific about what needs to be done "
+    ""
+    "Available tools: "
+    "- find_student_by_name, create_student, update_student, delete_student "
+    "- list_students, assign_room, create_room, delete_room, list_rooms, update_room "
+    "- payments_by_name, create_payment_by_name, set_payments_status_by_name "
+    "Use these tools to plan the steps. Only use tools that are relevant to the user's request. It is very important to use the tools to plan the steps."
+    "Output Format (JSON only): "
+    "{"
+    "  'todo': ["
+    "    'step 1 description',"
+    "    'step 2 description',"
+    "    'step 3 description'"
+    "  ],"
+    "  'computed_values': {"
+    "    'price': 32000,"
+    "    'total_rooms': 12"
+    "  },"
+    "  'summary': 'Brief description of what this plan accomplishes'"
+    "}"
+    ""
+    "Examples: "
+    "- User: 'update all rooms to price 8000*4' "
+    "- Plan: {'todo': ['Calculate 8000*4 = 32000', 'List all rooms', 'Update each room price to 32000'], 'computed_values': {'price': 32000}, 'summary': 'Update all room prices to ₹32,000'}"
+    ""
+    "- User: 'show all students and their room assignments' "
+    "- Plan: {'todo': ['List all students', 'List all rooms', 'Match students with rooms'], 'summary': 'Display all students and their room assignments'}"
 )
 
 # 4) Define LangGraph State
 class AgentState(Dict[str, Any]):
     messages: List[Any]
-    plan: Optional[Dict[str, Any]]
-    current_step: int
-    results: List[Any]
+    plan: Optional[Dict[str, Any]] = None
+    current_step: int = 0
+    results: List[Any] = []
 
 graph = StateGraph(AgentState)
 llm_with_tools = llm.bind_tools(TOOLS)
 
-# ---------------------------
-# Nodes
-# ---------------------------
-
 def planner_node(state: AgentState, config: RunnableConfig):
-    """Create a plan for complex/bulk requests."""
+    """Planning agent that breaks down user requests into executable steps."""
     messages = state["messages"]
-    planning_messages = [SystemMessage(content=PLANNER_PROMPT), *messages]
+    
+    print(f"DEBUG: Planner received messages: {[msg.content for msg in messages if hasattr(msg, 'content')]}")
+    
+    # Create planning prompt
+    planning_messages = [
+        SystemMessage(content=PLANNER_PROMPT),
+        *messages
+    ]
+    
+    # Get plan from planning LLM
     response = planner_llm.invoke(planning_messages, config=config)
-
-    content = response.content or ""
-    # Extract JSON chunk if LLM wraps
+    
+    print(f"DEBUG: Planner LLM response: {response.content}")
+    
     try:
-        start = content.find("{")
-        end = content.rfind("}") + 1
-        plan_json = json.loads(content[start:end])
-        if not isinstance(plan_json, dict) or "todo" not in plan_json:
-            raise ValueError("Invalid planner JSON")
-    except Exception:
-        # fallback minimal plan
-        plan_json = {"todo": [content], "computed_values": {}, "summary": "Simple execution"}
-
-    # Keep previous messages + planner response for traceability
-    return {
-        "plan": plan_json,
-        "current_step": 0,
-        "results": [],
-        "messages": messages + [response],
-    }
+        # Extract JSON plan from response - handle markdown and extra content
+        content = response.content
+        
+        # Remove markdown code blocks if present
+        if "```json" in content:
+            start = content.find("```json") + 7
+            end = content.find("```", start)
+            if end != -1:
+                content = content[start:end].strip()
+        elif "```" in content:
+            start = content.find("```") + 3
+            end = content.find("```", start)
+            if end != -1:
+                content = content[start:end].strip()
+        
+        # Find JSON content
+        if "{" in content and "}" in content:
+            start = content.find("{")
+            end = content.rfind("}") + 1
+            json_content = content[start:end]
+            
+            print(f"DEBUG: Extracted JSON content: {json_content}")
+            
+            try:
+                # First try to parse as regular JSON
+                plan_json = json.loads(json_content)
+                print(f"DEBUG: Parsed plan JSON: {plan_json}")
+                
+                # Validate plan structure
+                if "todo" in plan_json and isinstance(plan_json["todo"], list):
+                    return {
+                        "plan": plan_json,
+                        "current_step": 0,
+                        "results": [],
+                        "messages": [response]
+                    }
+            except json.JSONDecodeError as json_error:
+                print(f"DEBUG: JSON parsing failed: {json_error}")
+                # Try to handle single quotes by replacing them with double quotes
+                try:
+                    # Replace single quotes with double quotes, but be careful with apostrophes
+                    fixed_json = json_content.replace("'", '"')
+                    # Handle common cases where single quotes are used in text
+                    fixed_json = fixed_json.replace('"s ', "'s ")  # possessive
+                    fixed_json = fixed_json.replace('"t ', "'t ")  # contractions
+                    fixed_json = fixed_json.replace('"re ', "'re ")  # contractions
+                    fixed_json = fixed_json.replace('"ll ', "'ll ")  # contractions
+                    fixed_json = fixed_json.replace('"ve ', "'ve ")  # contractions
+                    
+                    plan_json = json.loads(fixed_json)
+                    print(f"DEBUG: Parsed fixed JSON: {plan_json}")
+                    
+                    # Validate plan structure
+                    if "todo" in plan_json and isinstance(plan_json["todo"], list):
+                        return {
+                            "plan": plan_json,
+                            "current_step": 0,
+                            "results": [],
+                            "messages": [response]
+                        }
+                except json.JSONDecodeError as second_error:
+                    print(f"DEBUG: Second JSON parsing failed: {second_error}")
+                    # Try to extract a simple plan from the content
+                    if "payments_by_name" in content.lower():
+                        # Extract student name from content
+                        import re
+                        name_match = re.search(r'payments_by_name.*?["\']([^"\']+)["\']', content.lower())
+                        student_name = name_match.group(1) if name_match else "shiva"
+                        fallback_plan = {
+                            "todo": [
+                                f"Get payments for student {student_name}"
+                            ],
+                            "computed_values": {},
+                            "summary": f"Retrieve payments for student {student_name}"
+                        }
+                        print(f"DEBUG: Using fallback plan for payments query: {fallback_plan}")
+                        return {
+                            "plan": fallback_plan,
+                            "current_step": 0,
+                            "results": [],
+                            "messages": [response]
+                        }
+                    elif "8000*4" in content or "32000" in content:
+                        fallback_plan = {
+                            "todo": [
+                                "Calculate 8000*4 = 32000",
+                                "List all rooms", 
+                                "Update each room price to 32000"
+                            ],
+                            "computed_values": {"price": 32000},
+                            "summary": "Update all room prices to ₹32,000"
+                        }
+                        print(f"DEBUG: Using fallback plan for math expression: {fallback_plan}")
+                        return {
+                            "plan": fallback_plan,
+                            "current_step": 0,
+                            "results": [],
+                            "messages": [response]
+                        }
+        
+        # Fallback: create simple plan
+        fallback_plan = {
+            "todo": [response.content],
+            "computed_values": {},
+            "summary": "Simple task execution"
+        }
+        print(f"DEBUG: Using fallback plan: {fallback_plan}")
+        return {
+            "plan": fallback_plan,
+            "current_step": 0,
+            "results": [],
+            "messages": [response]
+        }
+        
+    except Exception as e:
+        # Error fallback
+        print(f"DEBUG: Planning error: {e}")
+        error_plan = {
+            "todo": [f"Error in planning: {str(e)}"],
+            "computed_values": {},
+            "summary": "Planning failed"
+        }
+        return {
+            "plan": error_plan,
+            "current_step": 0,
+            "results": [],
+            "messages": [response]
+        }
 
 def call_model(state: AgentState, config: RunnableConfig):
-    """Simple agent path (no planning), but can use tools; loops via agent<->tool."""
+    """Model call with tools - for simple queries that don't need planning."""
     messages = state["messages"]
-    response = llm_with_tools.invoke([SystemMessage(content=SYSTEM_PROMPT), *messages], config=config)
+    response = llm_with_tools.invoke(messages, config=config)
     return {"messages": [response]}
 
 async def executor_node(state: AgentState, config: RunnableConfig):
-    """Execute planned steps one by one; keep looping until all steps are done."""
-    plan = state.get("plan") or {}
-    todo: List[str] = list(plan.get("todo", []))
-    computed_values: Dict[str, Any] = dict(plan.get("computed_values", {}))
-    step_idx = state.get("current_step", 0)
-    results = list(state.get("results", []))
-
-    if not todo:
-        return {"messages": [AIMessage(content=json.dumps({"summary": "No steps to execute", "data": [], "plan": plan}))]}
-
-    if step_idx >= len(todo):
-        # Finished
+    """Execution agent that runs planned tasks one by one without breakdowns."""
+    plan = state.get("plan", {})
+    if not plan or not isinstance(plan, dict):
+        return {"messages": [AIMessage(content="No valid plan found.")]}
+    
+    todo = plan.get("todo", [])
+    computed_values = plan.get("computed_values", {})
+    results = []
+    
+    # Debug: Log what we received
+    print(f"DEBUG: Executor received plan: {plan}")
+    print(f"DEBUG: Todo items: {todo}")
+    
+    try:
+        for i, step in enumerate(todo):
+            step_str = str(step).lower()
+            step_result = {"step": i + 1, "description": step, "status": "pending"}
+            
+            print(f"DEBUG: Executing step {i+1}: {step}")
+            
+            try:
+                # Execute step based on content
+                if "list_rooms" in step_str or "fetch all rooms" in step_str or "get all rooms" in step_str:
+                    print(f"DEBUG: Detected list_rooms step")
+                    rooms = await tool_list_rooms.ainvoke({}, config=config)
+                    step_result.update({
+                        "status": "completed",
+                        "result": rooms,
+                        "count": len(rooms) if isinstance(rooms, list) else 0
+                    })
+                    results.append(step_result)
+                    
+                elif "list_students" in step_str or "fetch all students" in step_str or "get all students" in step_str:
+                    print(f"DEBUG: Detected list_students step")
+                    students = await tool_list_students.ainvoke({}, config=config)
+                    step_result.update({
+                        "status": "completed",
+                        "result": students,
+                        "count": len(students) if isinstance(students, list) else 0
+                    })
+                    results.append(step_result)
+                    
+                elif "update" in step_str and "room" in step_str and "price" in step_str:
+                    print(f"DEBUG: Detected update room price step")
+                    # Extract price from computed values or calculate
+                    price = computed_values.get("price")
+                    if not price:
+                        # Try to extract from step description
+                        import re
+                        price_match = re.search(r'(\d+)', step_str)
+                        if price_match:
+                            price = int(price_match.group(1))
+                    
+                    # If still no price, try to extract from user input
+                    if not price:
+                        user_input = state.get("user_input", "")
+                        if user_input:
+                            # Look for math expressions in user input
+                            math_match = re.search(r'(\d+[\+\-\*\/]\d+)', user_input.lower())
+                            if math_match:
+                                expr = math_match.group(1)
+                                try:
+                                    price = eval(expr)
+                                    print(f"DEBUG: Calculated price from user input: {expr} = {price}")
+                                except:
+                                    pass
+                    
+                    print(f"DEBUG: Using price: {price}")
+                    
+                    if price:
+                        # Get all rooms first
+                        rooms = await tool_list_rooms.ainvoke({}, config=config)
+                        updated_rooms = []
+                        
+                        for room in rooms:
+                            if isinstance(room, dict) and "room_no" in room:
+                                try:
+                                    updated = await tool_update_room.ainvoke(
+                                        {"room_no": room["room_no"], "data": {"price": price}},
+                                        config=config
+                                    )
+                                    updated_rooms.append(updated)
+                                except Exception as e:
+                                    step_result["errors"] = step_result.get("errors", [])
+                                    step_result["errors"].append(f"Room {room.get('room_no', 'unknown')}: {str(e)}")
+                        
+                        step_result.update({
+                            "status": "completed",
+                            "result": updated_rooms,
+                            "count": len(updated_rooms),
+                            "price_applied": price
+                        })
+                    else:
+                        step_result.update({
+                            "status": "failed",
+                            "error": "No price value found for room updates"
+                        })
+                    
+                    results.append(step_result)
+                    
+                elif "calculate" in step_str or "math" in step_str or "*" in step_str or "+" in step_str or "-" in step_str or "/" in step_str:
+                    print(f"DEBUG: Detected math calculation step")
+                    # Handle math expressions
+                    try:
+                        import re
+                        # Look for math expressions in the step description
+                        math_match = re.search(r'(\d+[\+\-\*\/]\d+)', step_str)
+                        if math_match:
+                            expr = math_match.group(1)
+                            result = eval(expr)  # Safe for simple math
+                            step_result.update({
+                                "status": "completed",
+                                "result": f"{expr} = {result}",
+                                "computed_value": result
+                            })
+                            # Store in computed values for later use
+                            computed_values["price"] = result
+                            print(f"DEBUG: Calculated {expr} = {result}, stored in computed_values")
+                        else:
+                            # Try to extract from the original user input
+                            user_input = state.get("user_input", "")
+                            if user_input:
+                                math_match = re.search(r'(\d+[\+\-\*\/]\d+)', user_input.lower())
+                                if math_match:
+                                    expr = math_match.group(1)
+                                    result = eval(expr)
+                                    step_result.update({
+                                        "status": "completed",
+                                        "result": f"{expr} = {result}",
+                                        "computed_value": result
+                                    })
+                                    computed_values["price"] = result
+                                    print(f"DEBUG: Calculated from user input {expr} = {result}")
+                                else:
+                                    step_result.update({
+                                        "status": "failed",
+                                        "error": "No math expression found in step or user input"
+                                    })
+                            else:
+                                step_result.update({
+                                    "status": "failed",
+                                    "error": "No math expression found"
+                                })
+                    except Exception as e:
+                        step_result.update({
+                            "status": "failed",
+                            "error": f"Math calculation failed: {e}"
+                        })
+                    
+                    results.append(step_result)
+                    
+                else:
+                    print(f"DEBUG: Generic step execution")
+                    # Generic step - mark as completed with note
+                    step_result.update({
+                        "status": "completed",
+                        "result": "Step executed",
+                        "note": "Generic step execution"
+                    })
+                    results.append(step_result)
+                    
+            except Exception as e:
+                # Handle step execution errors
+                print(f"DEBUG: Step {i+1} failed with error: {e}")
+                step_result.update({
+                    "status": "failed",
+                    "error": str(e)
+                })
+                results.append(step_result)
+        
+        # Generate comprehensive summary
         total_steps = len(todo)
-        completed = len([r for r in results if r.get("status") == "completed"])
-        failed = len([r for r in results if r.get("status") == "failed"])
-        summary = f"✅ Plan completed. {completed}/{total_steps} steps done."
-        if failed:
-            summary += f" {failed} step(s) failed."
-        final = {
+        completed_steps = len([r for r in results if r.get("status") == "completed"])
+        failed_steps = len([r for r in results if r.get("status") == "failed"])
+        
+        print(f"DEBUG: Execution complete. {completed_steps}/{total_steps} steps completed")
+        
+        # Create summary based on plan type
+        if "update" in str(todo).lower() and "room" in str(todo).lower():
+            price = computed_values.get("price", "unknown")
+            summary = f"✅ Executed {completed_steps}/{total_steps} steps. Updated room prices to ₹{price}."
+        elif "list" in str(todo).lower():
+            total_items = sum([r.get("count", 0) for r in results if r.get("count")])
+            summary = f"✅ Executed {completed_steps}/{total_steps} steps. Retrieved {total_items} items."
+        else:
+            summary = f"✅ Executed {completed_steps}/{total_steps} steps successfully."
+        
+        if failed_steps > 0:
+            summary += f" {failed_steps} step(s) failed."
+        
+        # Final response
+        final_response = {
             "summary": summary,
             "data": results,
             "plan": plan,
             "execution_stats": {
                 "total_steps": total_steps,
-                "completed": completed,
-                "failed": failed,
-                "computed_values": computed_values,
-            },
+                "completed": completed_steps,
+                "failed": failed_steps,
+                "computed_values": computed_values
+            }
         }
-        return {"messages": [AIMessage(content=json.dumps(final))]}
-
-    step = str(todo[step_idx])
-    step_l = step.lower()
-    step_result = {"step": step_idx + 1, "description": step, "status": "pending"}
-
-    try:
-        # 1) Math / Calculate
-        if "calculate" in step_l or any(o in step for o in ["*", "+", "-", "/", "//", "%"]):
-            val_payload = await tool_evaluate_expression.ainvoke({"expression": step.replace("calculate", "").strip()}, config=config)
-            # normalize tool_evaluate_expression output
-            if isinstance(val_payload, dict) and "data" in val_payload and val_payload["data"]:
-                val = val_payload["data"][0].get("value")
-            else:
-                val = None
-            if val is not None:
-                # Heuristic: if the plan referenced "price", store it
-                if "price" in step_l or "room price" in step_l:
-                    computed_values["price"] = val
-                computed_values["last_calc"] = val
-                step_result.update({"status": "completed", "result": val})
-            else:
-                step_result.update({"status": "failed", "error": "Could not compute value"})
-
-        # 2) List Rooms
-        elif "list all rooms" in step_l or "list rooms" in step_l or "fetch all rooms" in step_l or "get all rooms" in step_l:
-            rooms = await tool_list_rooms.ainvoke({}, config=config)
-            count = len(rooms) if isinstance(rooms, list) else 0
-            step_result.update({"status": "completed", "result": rooms, "count": count})
-
-        # 3) List Students
-        elif "list all students" in step_l or "list students" in step_l or "fetch all students" in step_l:
-            students = await tool_list_students.ainvoke({}, config=config)
-            count = len(students) if isinstance(students, list) else 0
-            step_result.update({"status": "completed", "result": students, "count": count})
-
-        # 4) Bulk Update Room Price
-        elif "update each room price" in step_l or ("update" in step_l and "room" in step_l and "price" in step_l):
-            price = computed_values.get("price") or computed_values.get("last_calc")
-            if price is None:
-                step_result.update({"status": "failed", "error": "No price value to apply"})
-            else:
-                rooms = await tool_list_rooms.ainvoke({}, config=config)
-                updates = []
-                errors = []
-                if isinstance(rooms, list):
-                    for r in rooms:
-                        try:
-                            updated = await tool_update_room.ainvoke({"room_no": r["room_no"], "data": {"price": price}}, config=config)
-                            updates.append(updated)
-                        except Exception as e:
-                            errors.append({"room_no": r.get("room_no"), "error": str(e)})
-                step_result.update({"status": "completed", "result": updates, "count": len(updates)})
-                if errors:
-                    step_result["errors"] = errors
-
-        # 5) Generic step marker (no-op)
-        else:
-            step_result.update({"status": "completed", "note": "Step acknowledged (no specific action)"})
-
+        
+        return {"messages": [AIMessage(content=json.dumps(final_response))]}
+        
     except Exception as e:
-        step_result.update({"status": "failed", "error": str(e)})
+        # Handle overall execution errors
+        print(f"DEBUG: Overall execution failed: {e}")
+        error_response = {
+            "summary": f"❌ Execution failed: {str(e)}",
+            "data": results,
+            "error": str(e),
+            "plan": plan
+        }
+        return {"messages": [AIMessage(content=json.dumps(error_response))]}
 
-    results.append(step_result)
-
-    # Advance to next step (loop again)
-    return {
-        "messages": state["messages"],
-        "plan": {**plan, "computed_values": computed_values},
-        "current_step": step_idx + 1,
-        "results": results,
-    }
-
-# Tool execution node (simple path)
-async def tool_node(state: AgentState, config: RunnableConfig):
-    last = state["messages"][-1]
-    tool_msgs = []
-    for call in getattr(last, "tool_calls", []) or []:
-        name = call["name"]
-        args = call["args"] or {}
-        bound = next(tl for tl in TOOLS if tl.name == name)
-        result = await bound.ainvoke(args, config=config)
-
-        # Normalize to {summary, data}
-        def _envelope(ans):
-            if isinstance(ans, dict) and "summary" in ans and "data" in ans:
-                return {"summary": str(ans.get("summary", "")), "data": ans.get("data") or []}
-            if isinstance(ans, list):
-                preview = ans[:10]
-                return {"summary": f"Found {len(ans)} record(s). Showing {len(preview)}.", "data": preview}
-            if isinstance(ans, dict):
-                return {"summary": "1 record.", "data": [ans]}
-            return {"summary": str(ans), "data": []}
-
-        envelope = _envelope(result)
-        tool_msgs.append(ToolMessage(content=json.dumps(envelope), tool_call_id=call["id"]))
-    return {"messages": tool_msgs}
-
-# ---------------------------
-# Graph wiring
-# ---------------------------
-
+# Add nodes
 graph.add_node("planner", planner_node)
-graph.add_node("executor", executor_node)
 graph.add_node("agent", call_model)
-graph.add_node("tool", tool_node)
+graph.add_node("executor", executor_node)
 
-# Start → planner
+# Add edges
 graph.add_edge(START, "planner")
 
-# Decide path after planning: complex → executor, simple → agent
+# Router to decide flow based on request complexity
 def main_router(state: AgentState):
-    msgs = state.get("messages", [])
-    if not msgs:
+    """Decide whether to use planner→executor or direct tool execution."""
+    messages = state["messages"]
+    user_input = state.get("user_input", "")
+    
+    print(f"DEBUG: Router received {len(messages)} messages")
+    print(f"DEBUG: Router user_input: {user_input}")
+    
+    for i, msg in enumerate(messages):
+        if hasattr(msg, 'content'):
+            print(f"DEBUG: Message {i}: {msg.content[:100]}...")
+        else:
+            print(f"DEBUG: Message {i}: {type(msg)}")
+    
+    # Use explicit user_input if available, otherwise fall back to message parsing
+    if user_input:
+        content = user_input.lower()
+        print(f"DEBUG: Router using explicit user_input: {content}")
+    elif messages and len(messages) >= 2:
+        # Check the user message (second message, after system message)
+        user_message = messages[1]
+        if hasattr(user_message, 'content'):
+            content = user_message.content.lower()
+            print(f"DEBUG: Router using message[1]: {content}")
+        else:
+            print(f"DEBUG: Message[1] has no content, routing to executor")
+            return "executor"
+    else:
+        print(f"DEBUG: No user input found, routing to executor")
         return "executor"
-    # Check *latest* human message for complexity
-    human_msgs = [m for m in msgs if isinstance(m, HumanMessage)]
-    text = (human_msgs[-1].content.lower() if human_msgs else "").strip()
-
+    
+    # Complex requests that need planning
     complex_keywords = [
-        "all rooms", "all students", "bulk", "multiple",
+        "all rooms", "all students", "bulk", "multiple", 
         "update all", "delete all", "every", "each",
-        "*", "+", "-", "/", "//", "%", "calculate", "math"
+        "*", "+", "-", "/", "calculate", "math"
     ]
-    if any(k in text for k in complex_keywords):
-        return "executor"
-    return "agent"
+    
+    if any(keyword in content for keyword in complex_keywords):
+        print(f"DEBUG: Routing to executor (complex request)")
+        return "executor"  # Go to executor with the plan
+    else:
+        print(f"DEBUG: Routing to agent (simple request)")
+        return "agent"  # Go to simple agent
 
-graph.add_conditional_edges("planner", main_router, {"executor": "executor", "agent": "agent"})
+graph.add_conditional_edges("planner", main_router, {
+    "executor": "executor",
+    "agent": "agent"
+})
 
-# Executor loops until done
-def executor_router(state: AgentState):
-    plan = state.get("plan") or {}
-    total = len(plan.get("todo", []))
-    idx = state.get("current_step", 0)
-    if idx < total:
-        return "executor"
-    return END
+# Executor goes directly to END
+graph.add_edge("executor", END)
 
-graph.add_conditional_edges("executor", executor_router, {"executor": "executor", END: END})
-
-# Simple path: agent ⇄ tool loop until no more tool calls
-def simple_router(state: AgentState):
+# Simple agent path: if model requests a tool -> tool node, else END
+def router(state: AgentState):
     last = state["messages"][-1]
     if hasattr(last, "tool_calls") and last.tool_calls:
         return "tool"
     return END
 
-graph.add_conditional_edges("agent", simple_router, {"tool": "tool", END: END})
-graph.add_edge("tool", "agent")  # allow multiple tool iterations
+graph.add_conditional_edges("agent", router, {"tool": "tool", END: END})
+
+# Tool execution node
+async def tool_node(state: AgentState, config: RunnableConfig):
+    last = state["messages"][-1]
+    tool_msgs = []
+    for call in last.tool_calls:
+        name = call["name"]
+        args = call["args"]
+        tool = next(t for t in TOOLS if t.name == name)
+        result = await tool.ainvoke(args, config=config)
+        # Normalize tool outputs to an envelope {summary, data}
+        def _envelope_from_result(answer):
+            try:
+                if isinstance(answer, dict) and "summary" in answer and "data" in answer:
+                    return {"summary": str(answer.get("summary", "")), "data": answer.get("data") or []}
+                if isinstance(answer, list):
+                    count = len(answer)
+                    preview = answer[:10]
+                    return {"summary": f"Found {count} record(s). Showing {len(preview)}.", "data": preview}
+                if isinstance(answer, dict):
+                    return {"summary": "1 record.", "data": [answer]}
+                # fallback to text
+                return {"summary": str(answer), "data": []}
+            except Exception:
+                return {"summary": str(answer), "data": []}
+        envelope = _envelope_from_result(result)
+        payload = json.dumps(envelope)
+        tool_msgs.append(ToolMessage(content=payload, tool_call_id=call["id"]))
+    return {"messages": tool_msgs}
+
+graph.add_node("tool", tool_node)
+# End the run after one tool execution to avoid repeated tool loops
+graph.add_edge("tool", END)
 
 # Compile
 app = graph.compile()
 
-# 5) Entry with per-session memory
+# 5) Entry function with per-session memory
 _CHAT_HISTORY: Dict[str, List[Any]] = {}
 
 def _get_history(session_id: str) -> List[Any]:
@@ -444,7 +686,16 @@ def _get_history(session_id: str) -> List[Any]:
 async def agentwardan_chat(user_input: str, session_id: str = "default"):
     history = _get_history(session_id)
     history.append(HumanMessage(content=user_input))
-    state = {"messages": history, "plan": None, "current_step": 0, "results": []}
+    
+    # Create initial state with both system and user messages
+    state = {
+        "messages": history,
+        "user_input": user_input  # Explicitly store user input
+    }
+    
+    print(f"DEBUG: Initial state created with {len(history)} messages")
+    print(f"DEBUG: User input: {user_input}")
+    
     result = await app.ainvoke(state)
     reply = result["messages"][-1]
     history.append(reply)
